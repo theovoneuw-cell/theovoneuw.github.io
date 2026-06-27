@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com; font-src 'self'; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://api-adresse.data.gouv.fr https://router.project-osrm.org https://apis.tollguru.com; frame-src https://accounts.google.com https://content.googleapis.com; manifest-src 'self';" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>Ma Compta</title>
+  <!-- PWA / iPhone (ignorés par l'app de bureau) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Ma Compta" />
+  <link rel="apple-touch-icon" href="assets/icon.png" />
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ===================== EN-TETE ===================== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">€</span>
+      <div>
+        <h1>Ma Compta</h1>
+        <p class="sub">Théo Von Euw · EI</p>
+      </div>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="today">Accueil</button>
+      <button class="tab" data-tab="compta">Compta</button>
+      <button class="tab" data-tab="agenda">Agenda</button>
+      <button class="tab" data-tab="trajets">Trajets</button>
+      <button class="tab" data-tab="mails">Mails <span id="mailsBadge" class="tab-badge hidden"></span></button>
+      <button class="tab" data-tab="redaction">Rédaction</button>
+      <button class="tab" data-tab="settings">Paramètres</button>
+    </nav>
+
+    <div class="topbar-right">
+      <label class="year-select">Année <select id="yearSelect"></select></label>
+      <button id="btnPrivacy" class="btn btn-icon" title="Masquer les chiffres" aria-label="Masquer les chiffres"></button>
+      <button id="btnSave" class="btn btn-primary" title="Enregistrer (Ctrl+S)">Enregistrer</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== ACCUEIL (cockpit) ===================== -->
+    <section id="tab-today" class="panel active">
+      <div class="today-head">
+        <h2 id="todayTitle">Accueil</h2>
+        <p class="card-sub" id="todayDate"></p>
+      </div>
+      <div class="kpi-grid" id="todayKpis"></div>
+      <div class="cockpit-grid">
+        <div class="card">
+          <h3>Agenda du jour</h3>
+          <div id="todayAgenda" class="cockpit-list"></div>
+        </div>
+        <div class="card card-memo">
+          <h3>Pense-bête <span class="note-count" id="noteCount"></span></h3>
+          <p class="card-sub">Petites tâches à cocher — elles disparaissent une fois faites.</p>
+          <div class="note-add">
+            <input id="noteInput" type="text" maxlength="280" placeholder="Ajouter une tâche…" autocomplete="off">
+            <button id="noteAdd" class="btn btn-primary note-add-btn" title="Ajouter" aria-label="Ajouter">+</button>
+          </div>
+          <div id="todayNotesList" class="note-list"></div>
+        </div>
+        <div class="card">
+          <h3>Relances à faire</h3>
+          <p class="card-sub">Factures émises en attente ou en retard de paiement.</p>
+          <div id="todayRelances" class="cockpit-list"></div>
+        </div>
+        <div class="card">
+          <h3>Prochaine échéance URSSAF</h3>
+          <div id="todayUrssaf" class="cockpit-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== COMPTA (sous-onglets) ===================== -->
+    <section id="tab-compta" class="panel">
+      <nav class="subtabs">
+        <button class="subtab active" data-sub="dashboard">Tableau de bord</button>
+        <button class="subtab" data-sub="factures">Factures</button>
+        <button class="subtab" data-sub="fiscal">Fiscal</button>
+        <button class="subtab" data-sub="bilan">Bilan</button>
+        <button class="subtab" data-sub="donnees">Données</button>
+      </nav>
+
+      <!-- ---- Sous-onglet : Tableau de bord ---- -->
+      <div class="subpanel active" id="sub-dashboard">
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="card">
+          <h3>Cotisations URSSAF par trimestre</h3>
+          <p class="card-sub">Calculées sur l'argent réellement encaissé chaque trimestre. Vous réglez à l'URSSAF par trimestre.</p>
+          <div class="qgrid" id="urssafQuarters"></div>
+          <div class="qsched" id="urssafSchedule"></div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <h3>Encaissé par mois</h3>
+            <div class="chart-box"><canvas id="chartMonthly"></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Encaissé vs en attente</h3>
+            <div class="chart-box"><canvas id="chartStatus"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <h3>Comparaison annuelle (encaissé)</h3>
+            <div class="chart-box"><canvas id="chartYears"></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Top clients</h3>
+            <div class="chart-box"><canvas id="chartClients"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Prévisionnel de l'année</h3>
+          <p class="card-sub">Projection au rythme actuel, en tenant compte des factures déjà en attente.</p>
+          <div id="forecastBox" class="forecast"></div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <h3>Répartition par activité</h3>
+            <p class="card-sub">CA par type d'activité sur l'année sélectionnée.</p>
+            <div class="chart-box"><canvas id="chartCategories"></canvas></div>
+          </div>
+          <div class="card">
+            <h3>Saisonnalité</h3>
+            <p class="card-sub">Encaissé moyen par mois, toutes années.</p>
+            <div class="chart-box"><canvas id="chartSeason"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Indicateurs</h3>
+          <div id="bonusBox" class="bonus"></div>
+        </div>
+      </div>
+
+      <!-- ---- Sous-onglet : Factures ---- -->
+      <div class="subpanel" id="sub-factures">
+        <div class="toolbar">
+          <button id="btnNewFacture" class="btn btn-primary">+ Nouvelle facture</button>
+          <input type="search" id="searchInput" class="input" placeholder="Rechercher un client, un n°…" />
+          <span class="spacer"></span>
+          <span id="facturesSummary" class="summary"></span>
+        </div>
+        <div class="filters-row">
+          <select id="filterStatus">
+            <option value="all">Tous les statuts</option>
+            <option value="recue">Reçues</option>
+            <option value="attente">En attente</option>
+            <option value="retard">En retard</option>
+            <option value="prevu">Prévisionnel (non émises)</option>
+          </select>
+          <select id="filterTrimestre">
+            <option value="all">Tous les trimestres</option>
+            <option value="1">T1 (jan–mar)</option>
+            <option value="2">T2 (avr–juin)</option>
+            <option value="3">T3 (juil–sep)</option>
+            <option value="4">T4 (oct–déc)</option>
+          </select>
+          <select id="filterCategorie">
+            <option value="all">Toutes les activités</option>
+          </select>
+          <select id="filterPj">
+            <option value="all">PJ : toutes</option>
+            <option value="with">Avec pièce jointe</option>
+            <option value="without">Sans pièce jointe</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" id="facturesTable">
+            <thead>
+              <tr>
+                <th data-sort="dateEncaissement">Encaissé le</th>
+                <th data-sort="periode">Période</th>
+                <th data-sort="numFacture">N°</th>
+                <th data-sort="libelle">Client / libellé</th>
+                <th data-sort="montant" class="num">Montant</th>
+                <th data-sort="statut">Statut</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="facturesBody"></tbody>
+          </table>
+          <div id="facturesEmpty" class="empty hidden">
+            Aucune facture. Cliquez sur « + Nouvelle facture » ou importez votre Excel (sous-onglet Données).
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Sous-onglet : Fiscal ---- -->
+      <div class="subpanel" id="sub-fiscal">
+        <div id="seuilAlert"></div>
+
+        <div class="card">
+          <h3>Déclarations URSSAF</h3>
+          <p class="card-sub">Le montant exact à déclarer par trimestre (CA encaissé), la date limite, et le suivi déclaré / payé.</p>
+          <div id="fiscalDeclarations"></div>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <h3>Seuils à surveiller</h3>
+            <p class="card-sub">Franchise de TVA et plafond du régime micro.</p>
+            <div id="fiscalSeuils"></div>
+          </div>
+          <div class="card">
+            <h3>Estimation de l'impôt sur le revenu</h3>
+            <p class="card-sub">Indicatif — micro-BNC : abattement forfaitaire sur le CA.</p>
+            <div id="fiscalIR"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Calendrier fiscal</h3>
+          <p class="card-sub">Prochaines échéances (URSSAF, CFE, déclaration de revenus).</p>
+          <div id="fiscalCalendar" class="qsched"></div>
+        </div>
+      </div>
+
+      <!-- ---- Sous-onglet : Données ---- -->
+      <!-- ---- Sous-onglet : Bilan annuel ---- -->
+      <div class="subpanel" id="sub-bilan">
+        <div class="bilan-toolbar">
+          <label class="bilan-year">Bilan de l'année <select id="bilanYear"></select></label>
+          <span class="spacer"></span>
+          <button id="bilanExport" class="btn btn-primary">Exporter ce bilan en PDF</button>
+        </div>
+        <div id="bilanBody"></div>
+      </div>
+
+      <div class="subpanel" id="sub-donnees">
+        <div class="card">
+          <h3>Import / export des données</h3>
+          <p class="muted" style="font-size:12px">Vos données restent dans un fichier sur votre disque. Rien n'est envoyé sur internet.</p>
+          <div class="btn-row">
+            <button id="btnImportExcel" class="btn">Importer un Excel…</button>
+            <button id="btnExportCsv" class="btn">Exporter en CSV…</button>
+            <button id="btnExportPdf" class="btn">Bilan PDF…</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== AGENDA (vue mois) ===================== -->
+    <section id="tab-agenda" class="panel">
+      <div class="agenda-head">
+        <h2 id="agendaTitle">Agenda</h2>
+        <div class="agenda-nav">
+          <button id="agendaAdd" class="btn btn-primary" title="Ajouter un événement">+ Événement</button>
+          <button id="agendaPrev" class="btn" title="Mois précédent">‹</button>
+          <button id="agendaToday" class="btn">Aujourd'hui</button>
+          <button id="agendaNext" class="btn" title="Mois suivant">›</button>
+        </div>
+      </div>
+      <div id="agendaBody"></div>
+    </section>
+
+    <!-- ===================== TRAJETS (frais kilométriques) ===================== -->
+    <section id="tab-trajets" class="panel">
+      <div class="today-head">
+        <h2>Frais kilométriques</h2>
+        <p class="card-sub">Distance par la route, indemnité au barème et péages estimés. Saisis un départ et une arrivée — seul ce module se connecte à internet.</p>
+      </div>
+
+      <div class="trajet-grid">
+        <div class="card trajet-form">
+          <h3>Calculer un trajet</h3>
+          <div class="field full ac-field">
+            <label>Départ</label>
+            <input type="text" id="tj_from" class="input" placeholder="ex. 12 rue de la République, Nice" autocomplete="off" />
+            <div class="ac-list hidden" id="tj_fromList"></div>
+          </div>
+          <div class="field full ac-field">
+            <label>Arrivée</label>
+            <input type="text" id="tj_to" class="input" placeholder="ex. Mairie de Drap" autocomplete="off" />
+            <div class="ac-list hidden" id="tj_toList"></div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="check"><input type="checkbox" id="tj_ar" checked /> Aller-retour</label>
+            </div>
+            <div class="field">
+              <label>Véhicule</label>
+              <select id="tj_vehicle" class="input">
+                <option value="2AxlesAuto">Voiture</option>
+                <option value="2AxlesMotorcycle">Moto</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Trajets (×)</label>
+              <input type="number" id="tj_count" class="input" min="1" step="1" value="1" style="max-width:90px" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Prix carburant (€/L)</label>
+              <input type="number" id="tj_fuelPrice" class="input" min="0" step="0.01" placeholder="1,90" style="max-width:120px" />
+            </div>
+            <div class="field">
+              <label>Conso (L/100 km)</label>
+              <input type="number" id="tj_fuelConso" class="input" min="0" step="0.1" placeholder="6,5" style="max-width:120px" />
+            </div>
+          </div>
+          <div class="field full">
+            <label class="check"><input type="checkbox" id="tj_tolls" /> Calculer les péages (TollGuru) <small>— consomme 1 calcul du quota gratuit (15/jour)</small></label>
+          </div>
+          <div class="field full">
+            <label>Motif / client (optionnel)</label>
+            <input type="text" id="tj_motif" class="input" placeholder="ex. Atelier musiques urbaines — Mairie de Drap" />
+          </div>
+          <div class="btn-row">
+            <button id="tj_calc" class="btn btn-primary">Calculer</button>
+            <button id="tj_save" class="btn btn-coral" disabled>Enregistrer le trajet</button>
+            <span id="tj_spin" class="mail-spin hidden">Calcul en cours…</span>
+          </div>
+          <p class="muted trajet-rate" id="tj_rateInfo"></p>
+        </div>
+
+        <div class="card trajet-result-card">
+          <div id="tj_map" class="trajet-map"></div>
+          <div id="tj_result" class="trajet-result"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="trajet-list-head">
+          <h3>Trajets enregistrés</h3>
+          <span id="tj_total" class="summary"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="trajetsTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Trajet</th>
+                <th class="num">Km</th>
+                <th class="num">Indemnité</th>
+                <th class="num">Carburant</th>
+                <th class="num">Péages</th>
+                <th class="num">Total</th>
+                <th class="col-actions"></th>
+              </tr>
+            </thead>
+            <tbody id="trajetsBody"></tbody>
+          </table>
+          <div id="trajetsEmpty" class="empty hidden">Aucun trajet enregistré pour le moment.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== MAILS (Gmail, lecture) ===================== -->
+    <section id="tab-mails" class="panel">
+      <div class="mail-head">
+        <div class="mail-folders">
+          <button class="mfolder active" data-folder="principal">Boîte principale</button>
+          <button class="mfolder" data-folder="envoyes">Envoyés</button>
+          <button class="mfolder" data-folder="brouillons">Brouillons</button>
+        </div>
+        <div class="mail-head-actions">
+          <button id="mailCompose" class="btn btn-primary">Nouveau message</button>
+          <button id="mailRefresh" class="btn" title="Rafraîchir">↻ Actualiser</button>
+        </div>
+      </div>
+      <div class="mail-grid">
+        <div class="mail-list" id="mailList"></div>
+        <div class="mail-reader" id="mailReader"></div>
+      </div>
+    </section>
+
+    <!-- ===================== RÉDACTION (IA) ===================== -->
+    <section id="tab-redaction" class="panel">
+      <div class="today-head">
+        <h2>Rédaction assistée par IA</h2>
+        <p class="card-sub">Génère un mail professionnel en quelques secondes (Gemini). Le texte reste modifiable et copiable.</p>
+      </div>
+      <div class="redaction-grid">
+        <div class="card">
+          <h3>Paramètres du mail</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>Type de mail</label>
+              <select id="m_type" class="input">
+                <option value="relance">Relance d'impayé</option>
+                <option value="remerciement">Remerciement (paiement reçu)</option>
+                <option value="devis">Suivi de devis</option>
+                <option value="libre">Libre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Ton</label>
+              <select id="m_ton" class="input">
+                <option value="pro">Professionnel</option>
+                <option value="cordial">Cordial</option>
+                <option value="ferme">Ferme</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Client / destinataire</label>
+              <input type="text" id="m_client" class="input" placeholder="ex. Fondation de Nice" />
+            </div>
+            <div class="field full">
+              <label>Points à mentionner (optionnel)</label>
+              <textarea id="m_points" class="input" rows="4" placeholder="ex. facture n°201 de 330 €, échéance dépassée, proposer un règlement sous 8 jours"></textarea>
+            </div>
+          </div>
+          <div class="mail-actions">
+            <button type="button" id="btnGenerateMail" class="btn btn-coral">Générer</button>
+            <span id="mailSpin" class="mail-spin hidden">Rédaction en cours…</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="redaction-result-head">
+            <h3>Résultat</h3>
+            <button type="button" id="btnCopyMail" class="btn">Copier</button>
+          </div>
+          <textarea id="m_result" class="input mail-result" rows="18" placeholder="Le mail généré apparaîtra ici…"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PARAMETRES ===================== -->
+    <section id="tab-settings" class="panel">
+      <div class="settings-grid">
+        <div class="card">
+          <h3>Taux de cotisations URSSAF</h3>
+          <p class="card-sub">Un taux par trimestre (le taux évolue dans le temps). Calcul sur l'encaissé. Pré-rempli avec vos taux réels.</p>
+          <div id="urssafTable"></div>
+          <div class="field" style="margin-top:14px">
+            <label>Taux par défaut (années non renseignées)</label>
+            <input type="number" id="setDefaultRate" step="0.1" min="0" max="100" class="input mask-amount" style="max-width:140px" />
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3>Impôt sur le revenu</h3>
+            <div class="field">
+              <label class="check"><input type="checkbox" id="setVersementActif" /> Versement libératoire de l'impôt</label>
+              <input type="number" id="setTauxImpot" step="0.1" min="0" max="10" class="input mask-amount" style="max-width:140px" />
+              <small>Taux du prélèvement libératoire si vous avez opté (ex. 2,2 % en BNC).</small>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Abattement micro-BNC (%)</label>
+                <input type="number" id="setAbattement" step="1" min="0" max="100" class="input mask-amount" />
+                <small>Forfaitaire : 34 % en BNC.</small>
+              </div>
+              <div class="field">
+                <label>Votre tranche d'imposition (%)</label>
+                <input type="number" id="setTmi" step="1" min="0" max="45" class="input mask-amount" placeholder="ex. 11" />
+                <small>Optionnel, pour estimer l'impôt.</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Objectifs &amp; seuils</h3>
+            <div class="field-row">
+              <div class="field">
+                <label>Seuil TVA — base (€)</label>
+                <input type="number" id="setSeuilTvaBase" step="100" min="0" class="input mask-amount" />
+                <small>Services/BNC : 37 500 €.</small>
+              </div>
+              <div class="field">
+                <label>Seuil TVA — majoré (€)</label>
+                <input type="number" id="setSeuilTvaMajore" step="100" min="0" class="input mask-amount" />
+                <small>Services/BNC : 41 250 €.</small>
+              </div>
+            </div>
+            <div class="field">
+              <label>Plafond micro (€) — laisser vide = automatique</label>
+              <input type="number" id="setPlafond" step="100" min="0" class="input mask-amount" style="max-width:200px" placeholder="auto : 83 600 € (2026)" />
+              <small>Auto : 77 700 € jusqu'en 2025, 83 600 € à partir de 2026.</small>
+            </div>
+            <div class="field">
+              <label>Objectif de CA annuel (€) — optionnel</label>
+              <input type="number" id="setObjectif" step="100" min="0" class="input mask-amount" style="max-width:200px" />
+            </div>
+            <div class="field">
+              <label>Délai de paiement par défaut (jours)</label>
+              <input type="number" id="setDelai" step="1" min="1" class="input" style="max-width:140px" />
+              <small>Pour une facture manuelle avec date d'envoi : passe « en retard » après ce délai.</small>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Connexions &amp; IA</h3>
+            <p class="muted" style="font-size:12px">Ta comptabilité reste 100 % locale. Ces fonctions se connectent à internet uniquement quand tu les utilises. Clés et jetons sont chiffrés sur ton ordinateur.</p>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Assistant IA (Gemini)</span> <span id="connGeminiState" class="pill">non configuré</span></div>
+              <p class="muted conn-help">Clé gratuite via Google AI Studio. <a href="#" id="lnkAiStudio" class="lnk">Obtenir une clé →</a></p>
+              <div class="field-row">
+                <div class="field" style="flex:1">
+                  <label>Clé API Gemini</label>
+                  <input type="password" id="setGeminiKey" class="input" placeholder="collez votre clé ici" autocomplete="off" />
+                </div>
+                <div class="field" style="align-self:flex-end">
+                  <button id="btnSaveGemini" class="btn">Enregistrer</button>
+                  <button id="btnTestGemini" class="btn">Tester</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Google Agenda</span> <span id="connGoogleState" class="pill">déconnecté</span></div>
+              <p class="muted conn-help">Agenda (lecture + création d'événements) et messagerie Gmail (lecture). <a href="#" id="lnkGoogleHelp" class="lnk">Comment créer les identifiants ? →</a></p>
+              <div class="field-row">
+                <div class="field" style="flex:1">
+                  <label>Client ID</label>
+                  <input type="text" id="setGoogleClientId" class="input" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off" />
+                </div>
+                <div class="field" style="flex:1">
+                  <label>Client secret</label>
+                  <input type="password" id="setGoogleClientSecret" class="input" placeholder="GOCSPX-…" autocomplete="off" />
+                </div>
+              </div>
+              <div class="btn-row">
+                <button id="btnSaveGoogle" class="btn">Enregistrer les identifiants</button>
+                <button id="btnConnectGoogle" class="btn btn-primary">Connecter Google Agenda</button>
+                <button id="btnDisconnectGoogle" class="btn">Déconnecter</button>
+              </div>
+            </div>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Péages (TollGuru)</span> <span id="connTollState" class="pill">non configuré</span></div>
+              <p class="muted conn-help">Clé gratuite pour le calcul des péages dans l'onglet Trajets. <a href="#" id="lnkTollGuru" class="lnk">Obtenir une clé →</a></p>
+              <div class="field-row">
+                <div class="field" style="flex:1">
+                  <label>Clé API TollGuru</label>
+                  <input type="password" id="setTollKey" class="input" placeholder="collez votre clé ici" autocomplete="off" />
+                </div>
+                <div class="field" style="align-self:flex-end">
+                  <button id="btnSaveToll" class="btn">Enregistrer</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Frais kilométriques</span></div>
+              <p class="muted conn-help">Barème utilisé pour l'indemnité kilométrique (onglet Trajets).</p>
+              <div class="field-row">
+                <div class="field">
+                  <label>Chevaux fiscaux</label>
+                  <select id="setCv" class="input" style="max-width:120px">
+                    <option value="3">3 CV et −</option>
+                    <option value="4">4 CV</option>
+                    <option value="5">5 CV</option>
+                    <option value="6">6 CV</option>
+                    <option value="7">7 CV et +</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Tarif au km (€)</label>
+                  <input type="number" id="setTarifKm" step="0.001" min="0" class="input" style="max-width:140px" />
+                  <small>Barème 2024 simplifié, modifiable.</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Style des mails IA</span></div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Ton par défaut</label>
+                  <select id="setMailTon" class="input">
+                    <option value="pro">Professionnel</option>
+                    <option value="cordial">Cordial</option>
+                    <option value="ferme">Ferme</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>Signature</label>
+                <textarea id="setMailSignature" class="input" rows="3" placeholder="Théo Von Euw&#10;Prestations son & musique&#10;06 …"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Mode discret</h3>
+            <p class="card-sub">Masque tous tes montants (€) et pourcentages par des •••, par exemple si tu ouvres l'app entouré de monde. Les outils (agenda, trajets, mails, rédaction) restent utilisables. L'icône œil, en haut, masque ou affiche les chiffres.</p>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Code de confidentialité</span> <span id="privPinState" class="pill">aucun code</span></div>
+              <p class="muted conn-help">Demandé pour réafficher les chiffres une fois masqués. Au moins 4 caractères. (À définir/supprimer quand les chiffres sont affichés.)</p>
+              <div class="field-row">
+                <div class="field" style="flex:1">
+                  <label>Code (PIN)</label>
+                  <input type="password" id="privPin" class="input" placeholder="ex. 1234" autocomplete="off" />
+                </div>
+                <div class="field" style="align-self:flex-end">
+                  <button id="btnPrivSetPin" class="btn">Définir le code</button>
+                  <button id="btnPrivClearPin" class="btn">Supprimer</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="conn-block">
+              <div class="conn-title"><span>Démarrage</span></div>
+              <label class="check"><input type="checkbox" id="privStartup" /> Démarrer en mode discret (chiffres masqués à l'ouverture)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== MODALE FACTURE ===================== -->
+  <div id="modalFacture" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2 id="modalTitle">Nouvelle facture</h2>
+      <form id="formFacture">
+        <input type="hidden" id="f_id" />
+        <input type="hidden" id="f_fichier" />
+
+        <!-- Import d'une piece jointe (facture PDF Indy) : remplit les champs automatiquement -->
+        <div class="pj-zone">
+          <div class="pj-head">
+            <button type="button" id="btnImportPj" class="btn btn-ghost"><svg class="ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Lire une facture PDF…</button>
+            <span class="pj-hint">Parcourez votre facture Indy : montant, n°, date et libellé seront remplis automatiquement.</span>
+          </div>
+          <div id="pjFile" class="pj-file hidden">
+            <span class="pj-name" id="pjName"></span>
+            <button type="button" id="btnOpenPj" class="mini-btn">Ouvrir</button>
+            <button type="button" id="btnRemovePj" class="mini-btn">Retirer</button>
+          </div>
+          <input type="file" id="pjInput" accept="application/pdf" class="hidden" />
+        </div>
+
+        <div class="form-grid">
+          <div class="field full">
+            <label>Client + nature de la vente *</label>
+            <input type="text" id="f_libelle" class="input" placeholder="ex. STUDIO M — session enregistrement" required />
+          </div>
+          <div class="field">
+            <label>Montant (€) *</label>
+            <input type="number" id="f_montant" class="input mask-amount" step="0.01" min="0" required />
+          </div>
+          <div class="field">
+            <label>N° de facture</label>
+            <input type="text" id="f_numFacture" class="input" placeholder="ex. 2026-014" />
+          </div>
+          <div class="field">
+            <label>Mode de paiement</label>
+            <select id="f_modePaiement" class="input">
+              <option value="">—</option>
+              <option>Virement</option>
+              <option>Chèque</option>
+              <option>Espèces</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Activité</label>
+            <select id="f_categorie" class="input"></select>
+          </div>
+          <div class="field">
+            <label>Période (déclaration)</label>
+            <div class="field-row">
+              <input type="number" id="f_annee" class="input" placeholder="Année" min="2000" max="2100" />
+              <select id="f_trimestre" class="input">
+                <option value="1">T1</option>
+                <option value="2">T2</option>
+                <option value="3">T3</option>
+                <option value="4">T4</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <fieldset class="suivi">
+          <legend>Paiement</legend>
+          <div class="form-grid">
+            <div class="field">
+              <label class="check"><input type="checkbox" id="f_recue" /> Paiement reçu</label>
+              <input type="date" id="f_dateEncaissement" class="input" />
+              <small>La date d'encaissement détermine la période et compte dans le CA / URSSAF.</small>
+            </div>
+            <div class="field">
+              <label>Date d'envoi / émission (optionnel)</label>
+              <input type="date" id="f_dateEnvoi" class="input" />
+              <small>Date d'émission de la facture (sur le PDF Indy).</small>
+            </div>
+            <div class="field">
+              <label>Date d'échéance (optionnel)</label>
+              <input type="date" id="f_dateEcheance" class="input" />
+              <small>Si dépassée et non payée → « en retard ».</small>
+            </div>
+          </div>
+          <div class="field full">
+            <label>Notes (optionnel)</label>
+            <textarea id="f_notes" class="input" rows="2"></textarea>
+          </div>
+        </fieldset>
+
+        <div class="modal-actions">
+          <button type="button" id="btnDeleteFacture" class="btn btn-danger hidden">Supprimer</button>
+          <span class="spacer"></span>
+          <button type="button" id="btnCancelModal" class="btn">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="vendor/chart.umd.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <!-- Mode navigateur / PWA : recrée window.api côté client (sans effet sur l'app de bureau). -->
+  <script src="js/google-auth-web.js"></script>
+  <script src="js/drive-store.js"></script>
+  <script src="js/api-web.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/import.js"></script>
+  <script src="js/pdfimport.js"></script>
+  <script src="js/factures.js"></script>
+  <script src="js/fiscal.js"></script>
+  <script src="js/bilan.js"></script>
+  <script src="js/mail.js"></script>
+  <script src="js/connections.js"></script>
+  <script src="js/agenda.js"></script>
+  <script src="js/mailbox.js"></script>
+  <script src="js/trajets.js"></script>
+  <script src="js/notes.js"></script>
+  <script src="js/today.js"></script>
+  <script src="js/privacy.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
