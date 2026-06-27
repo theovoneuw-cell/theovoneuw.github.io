@@ -99,6 +99,18 @@ window.CC = window.CC || {};
     });
   }
 
+  // Connexion idempotente : si une pop-up est déjà en cours, on renvoie la même
+  // promesse (évite d'ouvrir deux fenêtres quand l'app appelle aussi connect()).
+  let inflight = null;
+  function startConnect() {
+    if (inflight) return inflight;
+    inflight = request('consent').then(
+      (t) => { inflight = null; return { ok: !!t }; },
+      (e) => { inflight = null; throw e; }
+    );
+    return inflight;
+  }
+
   CC.gauth = {
     isConnected() { return localStorage.getItem('googleConnected') === '1'; },
 
@@ -114,10 +126,7 @@ window.CC = window.CC || {};
     },
 
     // Connexion explicite (clic sur « Connecter Google »).
-    async connect() {
-      const t = await request('consent');
-      return { ok: !!t };
-    },
+    connect() { return startConnect(); },
 
     disconnect() {
       try {
@@ -134,4 +143,17 @@ window.CC = window.CC || {};
   // Préchargement : la lib GIS est prête bien avant que l'utilisateur clique,
   // pour que la pop-up s'ouvre sans accroc (indispensable sur Safari/iPhone).
   loadGis().catch(function () {});
+
+  // CLÉ pour Safari/iPhone : on ouvre la pop-up de connexion DIRECTEMENT dans le
+  // geste de clic (phase de capture, avant le gestionnaire asynchrone de l'app).
+  // Safari bloque toute fenêtre ouverte après un `await` → « Popup window closed ».
+  document.addEventListener('click', (e) => {
+    const btn = e.target && e.target.closest && e.target.closest('#btnConnectGoogle');
+    if (!btn) return;
+    // Récupère un Client ID éventuellement saisi mais pas encore enregistré.
+    const f = document.getElementById('setGoogleClientId');
+    if (f && f.value.trim()) localStorage.setItem('googleClientId', f.value.trim());
+    if (!clientId()) return;                  // pas d'ID : on laisse l'app prévenir
+    startConnect().catch(function () {});      // ouvre la pop-up MAINTENANT (dans le geste)
+  }, true);
 })();
