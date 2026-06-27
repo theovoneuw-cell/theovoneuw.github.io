@@ -7,10 +7,10 @@
   <meta name="theme-color" content="#4f46e5" />
   <title>Ma Compta</title>
   <!-- PWA / iPhone (ignorés par l'app de bureau) -->
+  <!-- NB : on n'active PAS le mode "plein écran" iOS (apple-mobile-web-app-capable) :
+       en plein écran, Safari bloque la pop-up de connexion Google. L'icône ouvre
+       donc l'app dans Safari (fine barre d'adresse), où la connexion fonctionne. -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Ma Compta" />
   <link rel="apple-touch-icon" href="assets/icon.png" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
