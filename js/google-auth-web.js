@@ -7,6 +7,11 @@ window.CC = window.CC || {};
 //  - L'identifiant client (Client ID) est PUBLIC (pas de secret nécessaire).
 //  - On obtient un access token court (~1 h), rafraîchi silencieusement.
 //  - Mêmes droits que l'app PC : Gmail, Agenda, et Drive (appDataFolder).
+//
+// IMPORTANT (Safari / iPhone) : la pop-up de connexion DOIT être ouverte de façon
+// quasi synchrone après le clic. On précharge donc la lib GIS dès l'ouverture de
+// l'app, et `requestAccessToken` est appelé directement (sans attente réseau),
+// sinon Safari bloque la fenêtre (« Popup window closed »).
 // En mode Electron (PC), window.api existe déjà : ce module ne fait rien.
 // ---------------------------------------------------------------------------
 (function () {
@@ -21,6 +26,7 @@ window.CC = window.CC || {};
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
 
   let gisLoading = null;     // Promise de chargement de la lib GIS
+  let gisReady = false;      // lib GIS disponible ?
   let tokenClient = null;
   let token = '';            // access token courant
   let tokenExp = 0;          // expiration (ms epoch)
@@ -29,22 +35,25 @@ window.CC = window.CC || {};
   function clientId() { return (localStorage.getItem('googleClientId') || '').trim(); }
 
   function loadGis() {
-    if (window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
+    if (gisReady || (window.google && window.google.accounts && window.google.accounts.oauth2)) {
+      gisReady = true; return Promise.resolve();
+    }
     if (gisLoading) return gisLoading;
     gisLoading = new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = GIS_SRC; s.async = true; s.defer = true;
-      s.onload = () => resolve();
+      s.onload = () => { gisReady = true; resolve(); };
       s.onerror = () => { gisLoading = null; reject(new Error('Google Sign-In injoignable (connexion internet requise).')); };
       document.head.appendChild(s);
     });
     return gisLoading;
   }
 
-  async function ensureClient() {
+  // Crée (ou réutilise) le token client. Synchrone : suppose GIS déjà chargé.
+  function makeClient() {
     const id = clientId();
     if (!id) throw new Error('Renseigne ton identifiant Google (Client ID) dans Paramètres → Connexions.');
-    await loadGis();
+    if (!gisReady) throw new Error('not-ready');
     if (!tokenClient || tokenClient.__id !== id) {
       tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: id,
@@ -75,10 +84,17 @@ window.CC = window.CC || {};
   // prompt: '' = silencieux (pas d'UI si déjà autorisé) ; 'consent' = interactif.
   function request(prompt) {
     return new Promise((resolve, reject) => {
-      ensureClient().then((tc) => {
-        pending = { resolve, reject };
-        try { tc.requestAccessToken({ prompt: prompt }); }
-        catch (e) { pending = null; reject(e); }
+      if (!clientId()) { reject(new Error('Renseigne ton identifiant Google (Client ID) dans Paramètres → Connexions.')); return; }
+      // Chemin rapide : GIS déjà prêt -> ouverture quasi synchrone (Safari OK).
+      if (gisReady) {
+        try { const tc = makeClient(); pending = { resolve, reject }; tc.requestAccessToken({ prompt: prompt }); }
+        catch (e) { reject(e); }
+        return;
+      }
+      // GIS pas encore chargé : on charge puis on demande (peut perdre le geste).
+      loadGis().then(() => {
+        try { const tc = makeClient(); pending = { resolve, reject }; tc.requestAccessToken({ prompt: prompt }); }
+        catch (e) { reject(e); }
       }).catch(reject);
     });
   }
@@ -114,4 +130,8 @@ window.CC = window.CC || {};
       return { ok: true };
     }
   };
+
+  // Préchargement : la lib GIS est prête bien avant que l'utilisateur clique,
+  // pour que la pop-up s'ouvre sans accroc (indispensable sur Safari/iPhone).
+  loadGis().catch(function () {});
 })();

@@ -8,7 +8,7 @@
 // Pensé pour le déploiement « à plat » (web/) : tout est à la racine du site.
 // ---------------------------------------------------------------------------
 
-const CACHE = 'macompta-v1';
+const CACHE = 'macompta-v2';
 
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
@@ -49,16 +49,15 @@ self.addEventListener('fetch', (e) => {
   // Autres origines (API Google/Gemini, GIS, tuiles de carte) -> réseau direct.
   if (url.origin !== self.location.origin) return;
 
+  // Réseau d'abord (toujours la dernière version quand on est en ligne), avec
+  // repli sur le cache hors-ligne. Évite de servir du vieux code après une MAJ.
   e.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
-        if (res && res.ok && res.type === 'basic') {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(function () {});
-        }
-        return res;
-      }).catch(() => caches.match('index.html'));
-    })
+    fetch(req).then((res) => {
+      if (res && res.ok && res.type === 'basic') {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(function () {});
+      }
+      return res;
+    }).catch(() => caches.match(req).then((c) => c || caches.match('index.html')))
   );
 });
