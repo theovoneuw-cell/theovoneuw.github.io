@@ -2,25 +2,30 @@
 window.CC = window.CC || {};
 
 // ---------------------------------------------------------------------------
-// Pense-bête de l'accueil : petites tâches cochables, stockées en local
-// (localStorage, indépendant du fichier de compta). Une tâche cochée disparaît.
-// Pensé pour les rappels rapides qui ne méritent pas une entrée d'agenda.
+// Pense-bête de l'accueil : petites tâches cochables. Stockées DANS le document
+// de compta (CC.state.notes) → synchronisées PC ↔ iPhone via Google Drive.
+// Une tâche cochée disparaît. Pensé pour les rappels rapides hors agenda.
 // ---------------------------------------------------------------------------
-const NOTES_KEY = 'accueilNotes';
+const NOTES_KEY = 'accueilNotes';   // ancien stockage local (migration unique)
 
 CC.notes = {
-  _items: null,
   _bound: false,
+  _saveT: null,
 
-  _load() {
-    if (this._items) return this._items;
-    try { this._items = JSON.parse(localStorage.getItem(NOTES_KEY)) || []; }
-    catch (_) { this._items = []; }
-    if (!Array.isArray(this._items)) this._items = [];
-    return this._items;
+  _items() {
+    if (!Array.isArray(CC.state.notes)) CC.state.notes = [];
+    return CC.state.notes;
   },
-  _save() {
-    try { localStorage.setItem(NOTES_KEY, JSON.stringify(this._items || [])); } catch (_) {}
+
+  // Persiste : sur le web, sauvegarde silencieuse (IndexedDB + Drive) ;
+  // sur le PC, on marque "à enregistrer" (sauvé au Ctrl+S, comme le reste).
+  _persist() {
+    if (CC.cloud) {
+      clearTimeout(this._saveT);
+      this._saveT = setTimeout(() => { try { CC.cloud.save(CC.storage.serialize()); } catch (_) {} }, 700);
+    } else {
+      CC.markDirty();
+    }
   },
 
   bind() {
@@ -32,8 +37,8 @@ CC.notes = {
     const add = () => {
       const v = input.value.trim();
       if (!v) { input.focus(); return; }
-      this._load().unshift({ id: CC.util.uid(), text: v.slice(0, 280) });
-      this._save();
+      this._items().unshift({ id: CC.util.uid(), text: v.slice(0, 280) });
+      this._persist();
       input.value = '';
       this.render();
       input.focus();
@@ -55,8 +60,8 @@ CC.notes = {
     if (row.classList.contains('done')) return;
     row.classList.add('done');
     setTimeout(() => {
-      this._items = this._load().filter((n) => n.id !== id);
-      this._save();
+      CC.state.notes = this._items().filter((n) => n.id !== id);
+      this._persist();
       this.render();
     }, 430);
   },
@@ -64,7 +69,22 @@ CC.notes = {
   render() {
     const list = document.getElementById('todayNotesList');
     if (!list) return;
-    const items = this._load();
+    // Migration unique de l'ancien pense-bête local vers le document synchronisé.
+    if (!this._migrated) {
+      this._migrated = true;
+      try {
+        const raw = localStorage.getItem(NOTES_KEY);
+        if (raw) {
+          const old = JSON.parse(raw);
+          if (Array.isArray(old) && old.length && !this._items().length) {
+            CC.state.notes = old;
+            this._persist();
+          }
+          localStorage.removeItem(NOTES_KEY);
+        }
+      } catch (_) {}
+    }
+    const items = this._items();
     const count = document.getElementById('noteCount');
     if (count) count.textContent = items.length ? String(items.length) : '';
     if (!items.length) {

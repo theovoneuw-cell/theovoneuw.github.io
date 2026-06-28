@@ -47,12 +47,12 @@ CC.facturesView = {
       else if (st === 'prevu') quick = `<button class="mini-btn" data-act="emise" data-id="${f.id}" title="Donner un n° = facture émise">Émise</button> `;
       const pj = f.fichier ? `<button class="mini-btn pj-btn" data-act="pj" data-id="${f.id}" title="Ouvrir la facture PDF" aria-label="Ouvrir la facture PDF">${ICON_CLIP}</button> ` : '';
       return `<tr class="frow ${st}">
-        <td class="fdate">${f.dateEncaissement ? CC.util.frDate(f.dateEncaissement) : '<span class="muted">—</span>'}</td>
-        <td class="fmeta">${periode}</td>
-        <td class="fmeta">${esc(f.numFacture) || '<span class="muted">—</span>'}</td>
-        <td class="client">${esc(f.libelle)} <span class="cat-chip">${esc(f.categorie || CC.util.categoryOf(f.libelle))}</span></td>
-        <td class="num montant">${CC.util.eur(+f.montant || 0)}</td>
-        <td><span class="stpill ${st}">${labels[st]}</span></td>
+        <td class="fdate" data-label="Encaissé le">${f.dateEncaissement ? CC.util.frDate(f.dateEncaissement) : '<span class="muted">—</span>'}</td>
+        <td class="fmeta" data-label="Période">${periode}</td>
+        <td class="fmeta" data-label="N°">${esc(f.numFacture) || '<span class="muted">—</span>'}</td>
+        <td class="client" data-label="Client">${esc(f.libelle)} <span class="cat-chip">${esc(f.categorie || CC.util.categoryOf(f.libelle))}</span></td>
+        <td class="num montant" data-label="Montant">${CC.util.eur(+f.montant || 0)}</td>
+        <td data-label="Statut"><span class="stpill ${st}">${labels[st]}</span></td>
         <td class="col-actions">${pj}${quick}<button class="mini-btn" data-act="edit" data-id="${f.id}">Éditer</button></td>
       </tr>`;
     }).join('');

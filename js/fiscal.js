@@ -21,12 +21,12 @@ CC.renderFiscal = function () {
     const passe = days < 0;
     const dlTxt = passe ? ('échu — ' + frD(dl)) : (frD(dl) + (urgent ? ` · dans ${days} j` : ''));
     return `<tr>
-      <td class="q">T${t.trimestre} ${year}</td>
-      <td class="num">${CC.util.eur0(t.encaisse)}</td>
-      <td class="num">${CC.util.eur0(t.urssaf)}</td>
-      <td class="deadline ${urgent ? 'urgent' : ''}">${dlTxt}</td>
-      <td class="ctr"><input type="checkbox" class="chk" data-k="${key}" data-f="declare" ${dec.declare ? 'checked' : ''}></td>
-      <td class="ctr"><input type="checkbox" class="chk" data-k="${key}" data-f="paye" ${dec.paye ? 'checked' : ''}></td>
+      <td class="q" data-label="Trimestre">T${t.trimestre} ${year}</td>
+      <td class="num" data-label="CA à déclarer">${CC.util.eur0(t.encaisse)}</td>
+      <td class="num" data-label="URSSAF">${CC.util.eur0(t.urssaf)}</td>
+      <td class="deadline ${urgent ? 'urgent' : ''}" data-label="Date limite">${dlTxt}</td>
+      <td class="ctr" data-label="Déclaré"><input type="checkbox" class="chk" data-k="${key}" data-f="declare" ${dec.declare ? 'checked' : ''}></td>
+      <td class="ctr" data-label="Payé"><input type="checkbox" class="chk" data-k="${key}" data-f="paye" ${dec.paye ? 'checked' : ''}></td>
     </tr>`;
   }).join('');
   document.getElementById('fiscalDeclarations').innerHTML = `

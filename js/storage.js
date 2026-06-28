@@ -10,7 +10,8 @@ CC.storage = {
       settings: CC.state.settings,
       declarations: CC.state.declarations,
       factures: CC.state.factures,
-      trajets: CC.state.trajets
+      trajets: CC.state.trajets,
+      notes: CC.state.notes
     }, null, 2);
   },
 
@@ -22,6 +23,7 @@ CC.storage = {
     CC.state.declarations = obj.declarations || {};
     CC.state.factures = Array.isArray(obj.factures) ? obj.factures.map(normalize) : [];
     CC.state.trajets = Array.isArray(obj.trajets) ? obj.trajets : [];
+    CC.state.notes = Array.isArray(obj.notes) ? obj.notes : [];
   },
 
   async save(forceDialog) {

@@ -9,6 +9,7 @@ CC.state = {
   factures: [],
   declarations: {},
   trajets: [],
+  notes: [],            // pense-bête (synchronisé PC ↔ iPhone via le document)
   filePath: null,
   primaryPath: null,    // chemin habituel du fichier (sur le disque externe)
   readOnly: false,      // true quand on affiche la copie locale (disque absent)

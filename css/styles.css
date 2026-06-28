@@ -810,3 +810,46 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .kpi-grid { grid-template-columns: 1fr; }
   .tj-kpis { grid-template-columns: 1fr; }
 }
+
+/* ===== Finitions mobiles : anti-zoom, mails, tableaux en cartes ===== */
+@media (max-width: 720px) {
+  /* Anti-zoom iOS : tout champ < 16px fait zoomer Safari au focus. À 16px, plus de zoom. */
+  input, select, textarea, .input, .dp-field { font-size: 16px; }
+
+  /* ---- Mails : plus de chevauchement, actions qui s'enroulent ---- */
+  .mitem { padding-right: 42px; }                 /* place pour la corbeille */
+  .mitem-del { opacity: .5; font-size: 16px; top: 10px; }   /* visible (pas de survol au doigt) */
+  .mitem-date { font-size: 11.5px; }
+  .mail-msg-top { flex-direction: column; align-items: stretch; gap: 10px; }
+  .mail-msg-actions { flex-wrap: wrap; gap: 8px; }
+  .mail-msg-actions .btn { flex: 1 1 auto; }
+  .mail-reader { max-height: none; padding: 16px 14px; }
+  .mail-msg-head h2 { font-size: 17px; }
+
+  /* ---- Factures : tableau -> cartes empilées (lisibles au doigt) ---- */
+  #facturesTable.table { min-width: 0; }
+  #facturesTable, #facturesTable tbody { display: block; width: 100%; }
+  #facturesTable thead { display: none; }
+  #facturesTable tr.frow { display: block; border: 1px solid var(--border-strong); border-left: 3px solid var(--soft); border-radius: 12px; padding: 9px 13px; margin-bottom: 10px; background: var(--surface); box-shadow: var(--shadow-soft); }
+  #facturesTable tr.frow.recue { border-left-color: var(--green); }
+  #facturesTable tr.frow.attente { border-left-color: var(--amber); }
+  #facturesTable tr.frow.retard { border-left-color: var(--red); }
+  #facturesTable tr.frow.prevu { border-left-color: var(--blue); }
+  #facturesTable td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; border: none; text-align: right; }
+  #facturesTable td::before { content: attr(data-label); font-weight: 600; color: var(--muted); text-align: left; font-size: 12px; flex-shrink: 0; }
+  #facturesTable td.client { text-align: left; flex-wrap: wrap; font-size: 14px; }
+  #facturesTable td.client::before { width: 100%; }
+  #facturesTable td.montant { font-size: 16px; }
+  #facturesTable td.col-actions { justify-content: flex-start; flex-wrap: wrap; gap: 6px; padding-top: 9px; margin-top: 4px; border-top: 1px solid var(--border); }
+  #facturesTable td.col-actions::before { display: none; }
+
+  /* ---- Fiscal : déclarations URSSAF -> cartes (le tableau débordait) ---- */
+  .fiscal-table { display: block; width: 100%; }
+  .fiscal-table thead { display: none; }
+  .fiscal-table tbody { display: block; width: 100%; }
+  .fiscal-table tr { display: block; border: 1px solid var(--border-strong); border-radius: 12px; padding: 8px 13px; margin-bottom: 10px; background: var(--surface); box-shadow: var(--shadow-soft); }
+  .fiscal-table td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; border: none; text-align: right; }
+  .fiscal-table td::before { content: attr(data-label); font-weight: 600; color: var(--muted); text-align: left; font-size: 12px; }
+  .fiscal-table td.q { font-size: 15px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 2px; }
+  .fiscal-table td.q::before { display: none; }
+}

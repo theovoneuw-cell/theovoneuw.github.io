@@ -8,7 +8,7 @@
 // Pensé pour le déploiement « à plat » (web/) : tout est à la racine du site.
 // ---------------------------------------------------------------------------
 
-const CACHE = 'macompta-v2';
+const CACHE = 'macompta-v3';
 
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
