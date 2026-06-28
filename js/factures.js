@@ -17,13 +17,18 @@ CC.facturesView = {
     }
     const { key, dir } = S.sort;
     const mul = dir === 'asc' ? 1 : -1;
+    // Priorité de statut : ce qui est à relancer d'abord (retard, puis attente).
+    const STATUT_RANK = { retard: 0, attente: 1, prevu: 2, recue: 3 };
     list.sort((a, b) => {
       let va, vb;
       if (key === 'montant') { va = +a.montant; vb = +b.montant; }
-      else if (key === 'statut') { va = CC.stats.statut(a, S.settings); vb = CC.stats.statut(b, S.settings); }
+      else if (key === 'statut') { va = STATUT_RANK[CC.stats.statut(a, S.settings)] ?? 9; vb = STATUT_RANK[CC.stats.statut(b, S.settings)] ?? 9; }
       else if (key === 'periode') { va = (CC.stats.yearOf(a) || 0) * 10 + (CC.stats.trimOf(a) || 0); vb = (CC.stats.yearOf(b) || 0) * 10 + (CC.stats.trimOf(b) || 0); }
       else { va = (a[key] || '').toString().toLowerCase(); vb = (b[key] || '').toString().toLowerCase(); }
-      if (va < vb) return -mul; if (va > vb) return mul; return 0;
+      if (va < vb) return -mul; if (va > vb) return mul;
+      // Départage : échéance/encaissement le plus récent d'abord.
+      const da = a.dateEcheance || a.dateEncaissement || '', db = b.dateEcheance || b.dateEncaissement || '';
+      return db.localeCompare(da);
     });
     return list;
   },

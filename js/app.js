@@ -17,7 +17,8 @@ CC.state = {
   dirty: false,
   selectedYear: new Date().getFullYear(),
   filters: { search: '', status: 'all', trimestre: 'all', categorie: 'all', pj: 'all' },
-  sort: { key: 'dateEncaissement', dir: 'desc' }
+  // Par défaut : les factures à relancer (retard puis en attente) en haut.
+  sort: { key: 'statut', dir: 'asc' }
 };
 
 // ---------------------------------------------------------------------------

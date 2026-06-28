@@ -34,6 +34,22 @@ window.CC = window.CC || {};
 
   function clientId() { return (localStorage.getItem('googleClientId') || '').trim(); }
 
+  // Persistance du jeton : Safari/iPhone ne sait pas rafraîchir en silence
+  // (protection anti-traçage). On garde donc le jeton valide (~1 h) en local
+  // pour ne PAS redemander l'autorisation à chaque réouverture, et pour que la
+  // synchro Drive (compta + pense-bête) reparte toute seule.
+  function persistToken() {
+    try { localStorage.setItem('googleToken', token); localStorage.setItem('googleTokenExp', String(tokenExp)); } catch (_) {}
+  }
+  function restoreToken() {
+    try {
+      const t = localStorage.getItem('googleToken');
+      const e = parseInt(localStorage.getItem('googleTokenExp') || '0', 10);
+      if (t && e > Date.now() + 5000) { token = t; tokenExp = e; }
+    } catch (_) {}
+  }
+  restoreToken();
+
   function loadGis() {
     if (gisReady || (window.google && window.google.accounts && window.google.accounts.oauth2)) {
       gisReady = true; return Promise.resolve();
@@ -64,6 +80,7 @@ window.CC = window.CC || {};
             token = resp.access_token;
             tokenExp = Date.now() + (((resp.expires_in || 3600) - 60) * 1000);
             localStorage.setItem('googleConnected', '1');
+            persistToken();
             pending.resolve(token);
           } else {
             pending.reject(new Error((resp && resp.error) || 'Connexion Google refusée.'));
@@ -136,6 +153,8 @@ window.CC = window.CC || {};
       } catch (_) {}
       token = ''; tokenExp = 0;
       localStorage.removeItem('googleConnected');
+      localStorage.removeItem('googleToken');
+      localStorage.removeItem('googleTokenExp');
       return { ok: true };
     }
   };
