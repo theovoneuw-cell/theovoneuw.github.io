@@ -107,6 +107,7 @@ CC.connections = {
       CC.toast('Google Agenda connecté ✓', 'ok');
       await CC.connections.refreshStatus();
       if (CC.renderToday) CC.renderToday();
+      if (CC.notes) CC.notes.pull();   // récupère le pense-bête synchronisé
     });
     $('btnDisconnectGoogle') && $('btnDisconnectGoogle').addEventListener('click', async () => {
       await window.api.gcal.disconnect();

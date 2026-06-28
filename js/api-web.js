@@ -463,6 +463,12 @@ window.CC = window.CC || {};
       }
     },
 
+    // ---- Pense-bête (fichier Drive séparé) ----
+    notes: {
+      load() { return CC.cloud.loadNotes(); },
+      save(notes) { return CC.cloud.saveNotes(notes); }
+    },
+
     // ---- Menu natif : inexistant sur le web ----
     onMenu() {}
   };

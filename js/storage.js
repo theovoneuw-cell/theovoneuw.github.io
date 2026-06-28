@@ -10,8 +10,7 @@ CC.storage = {
       settings: CC.state.settings,
       declarations: CC.state.declarations,
       factures: CC.state.factures,
-      trajets: CC.state.trajets,
-      notes: CC.state.notes
+      trajets: CC.state.trajets
     }, null, 2);
   },
 
@@ -23,7 +22,9 @@ CC.storage = {
     CC.state.declarations = obj.declarations || {};
     CC.state.factures = Array.isArray(obj.factures) ? obj.factures.map(normalize) : [];
     CC.state.trajets = Array.isArray(obj.trajets) ? obj.trajets : [];
-    CC.state.notes = Array.isArray(obj.notes) ? obj.notes : [];
+    // Le pense-bête vit désormais dans son propre fichier Drive (notes.json).
+    // On garde juste une graine de migration si un ancien fichier compta en contenait.
+    if (Array.isArray(obj.notes) && obj.notes.length) CC.state._notesSeed = obj.notes;
   },
 
   async save(forceDialog) {

@@ -307,6 +307,9 @@ async function init() {
   CC.updateMailBadge();
   setInterval(() => CC.updateMailBadge(), 120000);
 
+  // Pense-bête : récupère la version Drive (synchro PC ↔ iPhone)
+  if (CC.notes) CC.notes.pull();
+
   // Proposer la recuperation si une sauvegarde de secours existe
   checkRecovery();
 }

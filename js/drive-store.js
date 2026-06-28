@@ -96,6 +96,31 @@ window.CC = window.CC || {};
     return await r.json();
   }
 
+  // ----- Variante générique (par nom de fichier) pour le pense-bête -----
+  const NOTES_NAME = 'notes.json';
+  let notesMeta = null;
+  async function findNamed(name) {
+    const q = encodeURIComponent("name='" + name + "'");
+    const url = FILES + '?spaces=appDataFolder&pageSize=1&fields=' + encodeURIComponent('files(' + FIELDS + ')') + '&q=' + q;
+    const r = await authFetch(url);
+    if (!r.ok) throw new Error('Drive (liste) ' + r.status);
+    const d = await r.json();
+    return (d.files && d.files[0]) || null;
+  }
+  async function uploadNewNamed(name, content) {
+    const boundary = 'mc' + Math.random().toString(36).slice(2);
+    const metaPart = JSON.stringify({ name: name, parents: ['appDataFolder'] });
+    const body =
+      '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + metaPart +
+      '\r\n--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + content +
+      '\r\n--' + boundary + '--';
+    const r = await authFetch(UPLOAD + '?uploadType=multipart&fields=' + FIELDS, {
+      method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: body
+    });
+    if (!r.ok) throw new Error('Drive (création) ' + r.status);
+    return await r.json();
+  }
+
   CC.cloud = {
     // Contenu du cache local uniquement (instantané, sans réseau).
     async cached() { const c = await idbGet(KEY); return c ? c.content : null; },
@@ -128,6 +153,31 @@ window.CC = window.CC || {};
       } catch (e) {
         return { offline: true, error: String(e.message || e) };
       }
+    },
+
+    // ----- Pense-bête (fichier Drive séparé) -----
+    async loadNotes() {
+      try {
+        if (!CC.gauth.isConnected()) return { exists: false, notes: [], offline: true };
+        const f = await findNamed(NOTES_NAME);
+        if (!f) return { exists: false, notes: [] };
+        notesMeta = f;
+        const r = await authFetch(FILES + '/' + f.id + '?alt=media');
+        if (!r.ok) throw new Error('Drive notes ' + r.status);
+        const txt = await r.text();
+        let notes = [];
+        try { const d = JSON.parse(txt); notes = Array.isArray(d) ? d : (Array.isArray(d.notes) ? d.notes : []); } catch (_) {}
+        return { exists: true, notes: notes };
+      } catch (_) { return { exists: false, notes: [], offline: true }; }
+    },
+    async saveNotes(notes) {
+      if (!CC.gauth.isConnected()) return { offline: true };
+      const content = JSON.stringify({ notes: notes || [], savedAt: new Date().toISOString() });
+      try {
+        if (!notesMeta) notesMeta = await findNamed(NOTES_NAME);
+        notesMeta = notesMeta ? await uploadUpdate(notesMeta.id, content) : await uploadNewNamed(NOTES_NAME, content);
+        return { ok: true };
+      } catch (e) { return { offline: true, error: String(e.message || e) }; }
     },
 
     // Tire les données depuis Drive et les applique si elles diffèrent du cache.

@@ -17,14 +17,33 @@ CC.notes = {
     return CC.state.notes;
   },
 
-  // Persiste : sur le web, sauvegarde silencieuse (IndexedDB + Drive) ;
-  // sur le PC, on marque "à enregistrer" (sauvé au Ctrl+S, comme le reste).
+  // Persiste dans le fichier Drive dédié `notes.json` (PC et iPhone via la même
+  // API window.api.notes). Indépendant de la compta -> pas d'écrasement croisé.
+  // Débouncé pour ne pas écrire à chaque frappe.
   _persist() {
-    if (CC.cloud) {
-      clearTimeout(this._saveT);
-      this._saveT = setTimeout(() => { try { CC.cloud.save(CC.storage.serialize()); } catch (_) {} }, 700);
+    clearTimeout(this._saveT);
+    const snapshot = this._items().slice();
+    this._saveT = setTimeout(() => {
+      try { if (window.api && window.api.notes) window.api.notes.save(snapshot); } catch (_) {}
+    }, 500);
+  },
+
+  // Récupère les notes depuis Drive et les affiche (appelé au démarrage et après
+  // connexion Google). Si aucun fichier n'existe encore mais qu'on a des notes
+  // locales (migration), on les y dépose.
+  async pull() {
+    if (!(window.api && window.api.notes)) return;
+    let r;
+    try { r = await window.api.notes.load(); } catch (_) { return; }
+    if (!r) return;
+    if (r.exists) {
+      CC.state.notes = Array.isArray(r.notes) ? r.notes : [];
+      this.render();
     } else {
-      CC.markDirty();
+      // Pas encore de fichier notes.json : on amorce avec d'éventuelles notes
+      // migrées (ancien format) ou les notes locales, puis on crée le fichier.
+      const seed = (CC.state._notesSeed && CC.state._notesSeed.length) ? CC.state._notesSeed : this._items();
+      if (seed.length) { CC.state.notes = seed.slice(); this.render(); this._persist(); }
     }
   },
 
