@@ -11,7 +11,10 @@ const AI_KEY = 'aiChats';
 const AI_SYSTEM = "Tu es l'assistant IA de Théo, micro-entrepreneur (prestations son et musique). "
   + "Tu réponds en français, de façon claire et concise. Tu peux aider sur tout : rédaction, "
   + "questions administratives/compta, idées, explications, etc. Si on te demande un mail, "
-  + "donne un texte prêt à copier.";
+  + "donne un texte prêt à copier. Un résumé chiffré et à jour de sa comptabilité (CA, URSSAF, "
+  + "factures, seuils, trajets) t'est fourni ci-dessous : appuie-toi dessus pour répondre "
+  + "précisément (montants en euros). Tous ces chiffres restent confidentiels et locaux. "
+  + "Si une donnée manque pour répondre, dis-le simplement.";
 
 CC.ai = {
   _chats: null,
@@ -29,6 +32,41 @@ CC.ai = {
     try { localStorage.setItem(AI_KEY, JSON.stringify(this._chats || [])); } catch (_) {}
   },
   _current() { return (this._chats || []).find((c) => c.id === this._currentId) || null; },
+
+  // Résumé chiffré de la compta, injecté dans le contexte du modèle à chaque envoi
+  // pour qu'il réponde précisément (« combien encaissé ce trimestre ? », « factures
+  // en retard ? », « prépare ma déclaration URSSAF »…).
+  _comptaContext() {
+    try {
+      const S = CC.state;
+      if (!S || !CC.stats) return '';
+      const today = new Date();
+      const year = (S.selectedYear === 'all' || !S.selectedYear) ? today.getFullYear() : S.selectedYear;
+      const fy = CC.stats.forYear(S.factures || [], year);
+      const sums = CC.stats.sums(fy, S.settings);
+      const cot = CC.stats.cotisationsYear(fy, year, S.settings);
+      const eur = (n) => Math.round(n || 0).toLocaleString('fr-FR') + ' €';
+      const decl = S.declarations || {};
+      const L = [];
+      L.push('Date du jour : ' + today.toLocaleDateString('fr-FR') + '.');
+      L.push('Année de référence : ' + year + ' (' + fy.length + ' factures).');
+      L.push('CA encaissé ' + year + ' : ' + eur(sums.encaisse) + '.');
+      L.push('Factures non payées — en attente : ' + eur(sums.attente) + ' ; en retard : ' + eur(sums.retard) + ' ; prévisionnel (pas encore émis) : ' + eur(sums.prevu) + '.');
+      cot.trims.forEach((t) => {
+        const d = decl[year + '-' + t.trimestre] || {};
+        const tags = (d.declare ? ' [déclaré]' : '') + (d.paye ? ' [payé]' : '');
+        L.push('T' + t.trimestre + ' ' + year + ' : CA ' + eur(t.encaisse) + ', URSSAF ' + eur(t.urssaf) + ' (taux ' + t.taux + '%)' + tags + '.');
+      });
+      L.push('URSSAF totale ' + year + ' : ' + eur(cot.urssaf) + ' ; net estimé après URSSAF : ' + eur(cot.net) + '.');
+      const base = S.settings.seuilTvaBase, plafond = CC.effPlafond ? CC.effPlafond(year) : 0;
+      L.push('Franchise TVA : seuil ' + eur(base) + ', marge restante ' + eur(base - sums.encaisse) + '. Plafond micro ' + year + ' : ' + eur(plafond) + ', marge ' + eur(plafond - sums.encaisse) + '.');
+      const top = CC.stats.topClients(fy, 3).map((c) => c.client + ' (' + eur(c.total) + ')');
+      if (top.length) L.push('Top clients ' + year + ' : ' + top.join(', ') + '.');
+      const traj = (S.trajets || []).filter((t) => String(t.date || '').slice(0, 4) === String(year));
+      if (traj.length) L.push('Trajets ' + year + ' : ' + traj.length + ', indemnité km totale ' + eur(traj.reduce((a, t) => a + (+t.indemnite || 0), 0)) + '.');
+      return L.join('\n');
+    } catch (_) { return ''; }
+  },
   _create() {
     const c = { id: (CC.util && CC.util.uid ? CC.util.uid() : String(Date.now())), title: 'Nouvelle discussion', messages: [], updatedAt: Date.now() };
     this._chats.unshift(c);
@@ -64,7 +102,7 @@ CC.ai = {
     if (!box) return;
     const chat = this._current();
     if (!chat || !chat.messages.length) {
-      box.innerHTML = '<div class="ai-welcome">Pose ta question à Gemini.<br><span class="muted">Chaque discussion garde son fil. Les conversations restent sur cet appareil.</span></div>';
+      box.innerHTML = '<div class="ai-welcome">Pose ta question à Gemini.<br><span class="muted">Il connaît ta compta (CA, URSSAF, factures, seuils, trajets) — ex. « combien j\'ai encaissé ce trimestre ? », « quelles factures sont en retard ? », « prépare ma déclaration URSSAF ». Les conversations restent sur cet appareil.</span></div>';
     } else {
       box.innerHTML = chat.messages.map((m) =>
         `<div class="ai-msg ai-${m.role === 'model' ? 'bot' : 'me'}"><div class="ai-bubble">${aEsc(m.text)}</div></div>`
@@ -112,11 +150,13 @@ CC.ai = {
     if (input) input.value = '';
     this._renderList(); this._setBusy(true); this._renderMessages(); this.save();
 
+    const ctx = CC.ai._comptaContext();
+    const system = AI_SYSTEM + (ctx ? ('\n\n--- Comptabilité actuelle de Théo (confidentiel) ---\n' + ctx) : '');
     let r;
     try {
       r = await window.api.ai.generate({
         model: (CC.state.settings && CC.state.settings.aiModel) || 'gemini-2.0-flash',
-        system: AI_SYSTEM,
+        system: system,
         messages: chat.messages.map((m) => ({ role: m.role, text: m.text })),
         temperature: 0.7
       });

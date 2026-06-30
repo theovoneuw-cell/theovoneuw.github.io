@@ -10,6 +10,68 @@ CC.renderFiscal = function () {
   const fy = CC.stats.forYear(S.factures, year);
   const today = new Date();
 
+  // ---------- À déclarer maintenant (carte focalisée + bouton Copier) ----------
+  (function renderUrssafNow() {
+    const box = document.getElementById('urssafNow');
+    if (!box) return;
+    // Trimestre à déclarer : le plus urgent (échéance dépassée non déclarée),
+    // sinon la prochaine échéance non déclarée, sinon la prochaine échéance.
+    const cand = [];
+    for (let y = today.getFullYear() - 1; y <= today.getFullYear() + 1; y++)
+      for (let t = 1; t <= 4; t++) cand.push({ y, t, dl: CC.stats.urssafDeclDeadline(y, t) });
+    cand.sort((a, b) => a.dl - b.dl);
+    const declared = (c) => (S.declarations[c.y + '-' + c.t] || {}).declare;
+    const overdue = cand.filter((c) => c.dl < today && !declared(c));
+    const upcoming = cand.filter((c) => c.dl >= today && !declared(c));
+    const futur = cand.filter((c) => c.dl >= today);
+    const sel = overdue.length ? overdue[overdue.length - 1] : (upcoming[0] || futur[0] || cand[cand.length - 1]);
+
+    const fyy = CC.stats.forYear(S.factures, sel.y);
+    const enc = CC.stats.encaisseTrim(fyy, sel.y, sel.t);
+    const taux = CC.urssafRate(sel.y, sel.t);
+    const urssaf = enc * taux / 100;
+    const key = sel.y + '-' + sel.t;
+    const dec = S.declarations[key] || {};
+    const days = CC.util.daysBetween(today, sel.dl);
+    const overdueSel = days < 0;
+    let dlTxt, dlCls;
+    if (dec.declare) { dlTxt = 'déclaré ✓'; dlCls = 'ok'; }
+    else if (overdueSel) { dlTxt = 'échéance dépassée le ' + frD(sel.dl); dlCls = 'danger'; }
+    else { dlTxt = 'à déclarer avant le ' + frD(sel.dl) + (days <= 31 ? ' · dans ' + days + ' j' : ''); dlCls = days <= 15 ? 'urgent' : ''; }
+    const caR = Math.round(enc);
+
+    box.innerHTML = `
+      <h3>À déclarer à l'URSSAF</h3>
+      <p class="card-sub">Le montant exact à reporter dans ta déclaration, prêt à copier.</p>
+      <div class="un-grid">
+        <div class="un-info">
+          <div class="un-trim">T${sel.t} ${sel.y} <span class="un-dl ${dlCls}">${dlTxt}</span></div>
+          <div class="un-ca">${CC.util.eur0(enc)}</div>
+          <div class="un-note">CA encaissé du trimestre · cotisation URSSAF estimée <b>${CC.util.eur0(urssaf)}</b> (${String(taux).replace('.', ',')} %)</div>
+        </div>
+        <div class="un-actions">
+          <button type="button" class="btn btn-primary" id="unCopy">Copier&nbsp;: ${caR.toLocaleString('fr-FR')} €</button>
+          <label class="check un-declare"><input type="checkbox" id="unDeclare" ${dec.declare ? 'checked' : ''}> Marquer déclaré</label>
+          <button type="button" class="btn" id="unOpen">Ouvrir urssaf.fr ↗</button>
+        </div>
+      </div>`;
+
+    const copyBtn = document.getElementById('unCopy');
+    if (copyBtn) copyBtn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(String(caR)); CC.toast('Montant copié : ' + caR.toLocaleString('fr-FR') + ' € — colle-le dans ta déclaration URSSAF.', 'ok'); }
+      catch (_) { CC.toast('Copie impossible.', 'err'); }
+    });
+    const decBox = document.getElementById('unDeclare');
+    if (decBox) decBox.addEventListener('change', (e) => {
+      S.declarations[key] = S.declarations[key] || {};
+      S.declarations[key].declare = e.target.checked;
+      CC.markDirty();
+      CC.renderFiscal();   // resynchronise la carte ET le tableau ci-dessous
+    });
+    const openBtn = document.getElementById('unOpen');
+    if (openBtn) openBtn.addEventListener('click', () => { try { window.api.openUrl('https://www.autoentrepreneur.urssaf.fr/'); } catch (_) {} });
+  })();
+
   // ---------- Déclarations URSSAF ----------
   const cot = CC.stats.cotisationsYear(fy, year, settings);
   let rows = cot.trims.map((t) => {
