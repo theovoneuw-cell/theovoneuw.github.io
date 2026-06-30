@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com; font-src 'self'; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://api-adresse.data.gouv.fr https://router.project-osrm.org https://apis.tollguru.com; frame-src https://accounts.google.com https://content.googleapis.com; manifest-src 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.googleapis.com https://accounts.google.com https://api-adresse.data.gouv.fr https://router.project-osrm.org https://apis.tollguru.com; frame-src https://accounts.google.com https://content.googleapis.com; manifest-src 'self';" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#4f46e5" />
   <title>Ma Compta</title>
@@ -36,7 +36,7 @@
       <button class="tab" data-tab="agenda">Agenda</button>
       <button class="tab" data-tab="trajets">Trajets</button>
       <button class="tab" data-tab="mails">Mails <span id="mailsBadge" class="tab-badge hidden"></span></button>
-      <button class="tab" data-tab="redaction">Rédaction</button>
+      <button class="tab" data-tab="redaction">IA</button>
       <button class="tab" data-tab="settings">Paramètres</button>
     </nav>
 
@@ -153,6 +153,7 @@
       <div class="subpanel" id="sub-factures">
         <div class="toolbar">
           <button id="btnNewFacture" class="btn btn-primary">+ Nouvelle facture</button>
+          <button id="btnIndy" class="btn" title="Ouvrir la facturation Indy dans le navigateur">Facturation Indy ↗</button>
           <input type="search" id="searchInput" class="input" placeholder="Rechercher un client, un n°…" />
           <span class="spacer"></span>
           <span id="facturesSummary" class="summary"></span>
@@ -385,52 +386,17 @@
 
     <!-- ===================== RÉDACTION (IA) ===================== -->
     <section id="tab-redaction" class="panel">
-      <div class="today-head">
-        <h2>Rédaction assistée par IA</h2>
-        <p class="card-sub">Génère un mail professionnel en quelques secondes (Gemini). Le texte reste modifiable et copiable.</p>
-      </div>
-      <div class="redaction-grid">
-        <div class="card">
-          <h3>Paramètres du mail</h3>
-          <div class="form-grid">
-            <div class="field">
-              <label>Type de mail</label>
-              <select id="m_type" class="input">
-                <option value="relance">Relance d'impayé</option>
-                <option value="remerciement">Remerciement (paiement reçu)</option>
-                <option value="devis">Suivi de devis</option>
-                <option value="libre">Libre</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Ton</label>
-              <select id="m_ton" class="input">
-                <option value="pro">Professionnel</option>
-                <option value="cordial">Cordial</option>
-                <option value="ferme">Ferme</option>
-              </select>
-            </div>
-            <div class="field full">
-              <label>Client / destinataire</label>
-              <input type="text" id="m_client" class="input" placeholder="ex. Fondation de Nice" />
-            </div>
-            <div class="field full">
-              <label>Points à mentionner (optionnel)</label>
-              <textarea id="m_points" class="input" rows="4" placeholder="ex. facture n°201 de 330 €, échéance dépassée, proposer un règlement sous 8 jours"></textarea>
-            </div>
+      <div class="ai-layout">
+        <aside class="ai-sidebar">
+          <button type="button" id="aiNew" class="btn btn-primary ai-new">+ Nouvelle discussion</button>
+          <div id="aiList" class="ai-list"></div>
+        </aside>
+        <div class="ai-main">
+          <div id="aiMessages" class="ai-messages"></div>
+          <div class="ai-input-row">
+            <textarea id="aiInput" class="input ai-input" rows="2" placeholder="Pose ta question à Gemini…  (Entrée pour envoyer, Maj+Entrée = nouvelle ligne)"></textarea>
+            <button type="button" id="aiSend" class="btn btn-coral">Envoyer</button>
           </div>
-          <div class="mail-actions">
-            <button type="button" id="btnGenerateMail" class="btn btn-coral">Générer</button>
-            <span id="mailSpin" class="mail-spin hidden">Rédaction en cours…</span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="redaction-result-head">
-            <h3>Résultat</h3>
-            <button type="button" id="btnCopyMail" class="btn">Copier</button>
-          </div>
-          <textarea id="m_result" class="input mail-result" rows="18" placeholder="Le mail généré apparaîtra ici…"></textarea>
         </div>
       </div>
     </section>
@@ -739,7 +705,7 @@
   <script src="js/factures.js"></script>
   <script src="js/fiscal.js"></script>
   <script src="js/bilan.js"></script>
-  <script src="js/mail.js"></script>
+  <script src="js/ai.js"></script>
   <script src="js/connections.js"></script>
   <script src="js/agenda.js"></script>
   <script src="js/mailbox.js"></script>

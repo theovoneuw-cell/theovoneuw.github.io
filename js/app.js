@@ -175,7 +175,7 @@ CC.switchTab = function (name) {
   if (name === 'today' && CC.renderToday) CC.renderToday();
   if (name === 'agenda' && CC.agenda) CC.agenda.render();
   if (name === 'mails' && CC.mailbox) CC.mailbox.render();
-  if (name === 'redaction' && CC.mailComposer) CC.mailComposer.render();
+  if (name === 'redaction' && CC.ai) CC.ai.render();
   if (name === 'trajets' && CC.trajets) CC.trajets.render();
   if (name === 'settings' && CC.connections) CC.connections.render();
 };
@@ -259,7 +259,7 @@ async function init() {
 
   CC.bindSettings();
   CC.facturesView.bind();
-  CC.mailComposer.bind();
+  if (CC.ai) CC.ai.bind();
   CC.connections.bind();
   CC.agenda.bind();
   if (CC.mailbox) CC.mailbox.bind();

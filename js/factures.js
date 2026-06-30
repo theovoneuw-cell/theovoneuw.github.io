@@ -201,6 +201,8 @@ CC.facturesView = {
     document.getElementById('filterCategorie').innerHTML = '<option value="all">Toutes les activités</option>' +
       CC.CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('btnNewFacture').addEventListener('click', () => CC.facturesView.openModal(null));
+    const indy = document.getElementById('btnIndy');
+    if (indy) indy.addEventListener('click', () => { try { window.api.openUrl('https://app.indy.fr/facturation/factures'); } catch (_) {} });
     document.getElementById('btnCancelModal').addEventListener('click', () => CC.facturesView.closeModal());
 
     // Piece jointe (lecture PDF)

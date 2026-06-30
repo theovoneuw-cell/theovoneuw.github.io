@@ -107,9 +107,27 @@ window.CC = window.CC || {};
   function walkParts(payload, acc) {
     if (!payload) return;
     const mime = payload.mimeType || '';
-    if (mime === 'text/plain' && payload.body && payload.body.data) acc.text += b64urlDecode(payload.body.data);
-    else if (mime === 'text/html' && payload.body && payload.body.data) acc.html += b64urlDecode(payload.body.data);
+    const body = payload.body || {};
+    if (mime === 'text/plain' && body.data && !body.attachmentId) acc.text += b64urlDecode(body.data);
+    else if (mime === 'text/html' && body.data && !body.attachmentId) acc.html += b64urlDecode(body.data);
+    else if (body.attachmentId || payload.filename) {
+      const cid = (header(payload, 'Content-ID') || '').replace(/^<|>$/g, '');
+      const disp = (header(payload, 'Content-Disposition') || '').toLowerCase();
+      acc.atts.push({
+        attachmentId: body.attachmentId || '',
+        filename: payload.filename || cid || 'piece-jointe',
+        mimeType: mime || 'application/octet-stream',
+        size: body.size || 0,
+        contentId: cid,
+        inline: /^\s*inline/.test(disp) || (!!cid && !/^\s*attachment/.test(disp))
+      });
+    }
     (payload.parts || []).forEach((p) => walkParts(p, acc));
+  }
+  // base64url -> octets bruts (pour Blob de pièce jointe)
+  function b64urlToBytes(data) {
+    const bin = atob(String(data || '').replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
   }
   function buildRaw(p) {
     const head = [];
@@ -154,8 +172,11 @@ window.CC = window.CC || {};
   async function geminiGenerate(opts) {
     const apiKey = lsGet('geminiKey');
     if (!apiKey) return { error: 'Clé Gemini manquante. Renseigne-la dans Paramètres → Connexions & IA.' };
+    const contents = Array.isArray(opts.messages) && opts.messages.length
+      ? opts.messages.map((m) => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text || '') }] }))
+      : [{ role: 'user', parts: [{ text: opts.prompt || '' }] }];
     const body = {
-      contents: [{ role: 'user', parts: [{ text: opts.prompt || '' }] }],
+      contents: contents,
       generationConfig: { temperature: opts.temperature != null ? opts.temperature : 0.7 }
     };
     if (opts.system) body.systemInstruction = { parts: [{ text: opts.system }] };
@@ -412,24 +433,47 @@ window.CC = window.CC || {};
       async get(id) {
         const m = await gget(GMAIL + '/messages/' + id + '?format=full');
         if (m.__error) return { error: m.__error };
-        const acc = { text: '', html: '' }; walkParts(m.payload, acc);
+        const acc = { text: '', html: '', atts: [] }; walkParts(m.payload, acc);
         return { message: {
           id: m.id, threadId: m.threadId || '', messageId: header(m.payload, 'Message-ID'),
-          de: header(m.payload, 'From'), a: header(m.payload, 'To'),
+          de: header(m.payload, 'From'), a: header(m.payload, 'To'), cc: header(m.payload, 'Cc'),
           sujet: header(m.payload, 'Subject') || '(sans objet)', date: header(m.payload, 'Date'),
-          html: acc.html, text: acc.text
+          html: acc.html, text: acc.text, attachments: acc.atts
         } };
+      },
+      async attachment(opts) {
+        const o = opts || {};
+        const d = await gget(GMAIL + '/messages/' + o.messageId + '/attachments/' + o.attachmentId);
+        if (d.__error) return { error: d.__error };
+        return { data: d.data || '', size: d.size || 0 };
+      },
+      // Récupère la pièce jointe et l'ouvre dans un nouvel onglet (aperçu + partage iOS).
+      async openAttachment(opts) {
+        const o = opts || {};
+        const d = await gget(GMAIL + '/messages/' + o.messageId + '/attachments/' + o.attachmentId);
+        if (d.__error) return { error: d.__error };
+        try {
+          const blob = new Blob([b64urlToBytes(d.data || '')], { type: o.mimeType || 'application/octet-stream' });
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} }, 60000);
+          return { ok: true };
+        } catch (e) { return { error: String(e.message || e) }; }
       },
       async send(mail) {
         if (!mail.to || !mail.to.trim()) return { error: 'Destinataire manquant.' };
         const payload = { raw: buildRaw(mail) }; if (mail.threadId) payload.threadId = mail.threadId;
-        const r = await gsend('POST', GMAIL + '/messages/send', payload);
+        const r = mail.draftId
+          ? await gsend('POST', GMAIL + '/drafts/send', { id: mail.draftId, message: payload })
+          : await gsend('POST', GMAIL + '/messages/send', payload);
         if (r.__error) return { error: r.__error };
         return { ok: true, id: r.id };
       },
       async draft(mail) {
         const message = { raw: buildRaw(mail) }; if (mail.threadId) message.threadId = mail.threadId;
-        const r = await gsend('POST', GMAIL + '/drafts', { message: message });
+        const r = mail.draftId
+          ? await gsend('PUT', GMAIL + '/drafts/' + mail.draftId, { message: message })
+          : await gsend('POST', GMAIL + '/drafts', { message: message });
         if (r.__error) return { error: r.__error };
         return { ok: true, id: r.id };
       },

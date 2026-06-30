@@ -513,6 +513,32 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .redaction-result-head h3 { margin: 0; }
 .redaction-grid .mail-result { width: 100%; min-height: 360px; resize: vertical; }
 
+/* ===================== IA (chat Gemini) ===================== */
+.ai-layout { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 16px; height: calc(100vh - 196px); }
+@media (max-width: 900px) { .ai-layout { grid-template-columns: 1fr; height: calc(100vh - 150px); } .ai-sidebar { display: none; } }
+.ai-sidebar { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.ai-new { width: 100%; }
+.ai-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.ai-empty-list { color: var(--soft); font-size: 12px; padding: 8px 4px; }
+.ai-conv { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
+.ai-conv:hover { background: var(--surface-2); }
+.ai-conv.active { background: var(--surface); border-color: var(--border-strong); box-shadow: var(--shadow-soft); }
+.ai-conv-title { flex: 1; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-conv-del { background: none; border: none; color: var(--soft); cursor: pointer; font-size: 12px; padding: 0 3px; border-radius: 5px; line-height: 1; opacity: 0; }
+.ai-conv:hover .ai-conv-del { opacity: 1; }
+.ai-conv-del:hover { color: var(--red); }
+.ai-main { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-card); overflow: hidden; }
+.ai-messages { flex: 1; overflow-y: auto; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+.ai-welcome { margin: auto; text-align: center; color: var(--ink); font-size: 14px; line-height: 1.6; }
+.ai-msg { display: flex; }
+.ai-msg.ai-me { justify-content: flex-end; }
+.ai-bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.ai-me .ai-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.ai-bot .ai-bubble { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.ai-typing { color: var(--soft); letter-spacing: 2px; }
+.ai-input-row { display: flex; gap: 10px; padding: 12px; border-top: 1px solid var(--border); align-items: flex-end; }
+.ai-input { flex: 1; resize: none; max-height: 160px; }
+
 /* ===================== MAILS (Gmail, lecture) ===================== */
 .mail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .mail-folders { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 2px; }
@@ -565,6 +591,9 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .ac-item.sel { background: var(--accent-soft); }
 button.lnk { background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; padding: 0; white-space: nowrap; }
 .mc-attach-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.mail-attach-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.mail-att { cursor: pointer; }
+.mail-att:hover { border-color: var(--accent); background: var(--surface); }
 .mc-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px 5px 11px; font-size: 12px; }
 .mc-chip-name { font-weight: 600; color: var(--ink); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-chip-size { color: var(--soft); font-size: 11px; }

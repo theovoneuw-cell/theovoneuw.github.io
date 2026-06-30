@@ -50,6 +50,42 @@ window.CC = window.CC || {};
   }
   restoreToken();
 
+  // ------------------------------------------------------------------------
+  // Renouvellement silencieux du jeton.
+  // Google plafonne les jetons web à ~1 h et NE fournit pas de "refresh token"
+  // sans serveur : on ne peut donc pas tenir 24 h d'un seul jeton. À la place,
+  // tant que l'app est ouverte/au premier plan, on redemande silencieusement un
+  // nouveau jeton AVANT l'expiration (prompt:'' = sans aucune fenêtre si déjà
+  // autorisé). Sur iOS le silencieux peut échouer (anti-traçage) → on retombe
+  // alors sur une reconnexion au prochain geste. Après CHAQUE jeton obtenu, on
+  // recharge le pense-bête et la compta (plus besoin de fermer/rouvrir l'app).
+  // ------------------------------------------------------------------------
+  let renewT = null;
+  function afterToken() {
+    try { if (CC.cloud && CC.cloud.syncFromDrive) CC.cloud.syncFromDrive({ silent: true }); } catch (_) {}
+    try { if (CC.notes && CC.notes.pull) CC.notes.pull(); } catch (_) {}
+    try { if (CC.updateMailBadge) CC.updateMailBadge(); } catch (_) {}
+  }
+  function silentRenew() {
+    if (!clientId() || localStorage.getItem('googleConnected') !== '1') return;
+    // request('') déclenche le callback ci-dessus (token + scheduleRenew + afterToken).
+    request('').catch(function () { /* iOS peut bloquer le renouvellement silencieux */ });
+  }
+  function scheduleRenew() {
+    clearTimeout(renewT);
+    if (!tokenExp) return;
+    // ~2 min avant l'expiration (au minimum dans 15 s).
+    const delay = Math.max(15000, tokenExp - Date.now() - 120000);
+    renewT = setTimeout(silentRenew, delay);
+  }
+  // Au premier plan : si le jeton est mort ou proche de l'expiration, on le renouvelle.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    if (localStorage.getItem('googleConnected') !== '1') return;
+    if (!token || Date.now() > tokenExp - 120000) silentRenew();
+  });
+  if (token && Date.now() < tokenExp) scheduleRenew();   // jeton restauré encore valide
+
   function loadGis() {
     if (gisReady || (window.google && window.google.accounts && window.google.accounts.oauth2)) {
       gisReady = true; return Promise.resolve();
@@ -75,14 +111,15 @@ window.CC = window.CC || {};
         client_id: id,
         scope: SCOPES,
         callback: (resp) => {
-          if (!pending) return;
           if (resp && resp.access_token) {
             token = resp.access_token;
             tokenExp = Date.now() + (((resp.expires_in || 3600) - 60) * 1000);
             localStorage.setItem('googleConnected', '1');
             persistToken();
-            pending.resolve(token);
-          } else {
+            scheduleRenew();   // programme le prochain renouvellement silencieux
+            afterToken();      // re-synchro Drive + pense-bête (sans fermer/rouvrir)
+            if (pending) pending.resolve(token);
+          } else if (pending) {
             pending.reject(new Error((resp && resp.error) || 'Connexion Google refusée.'));
           }
           pending = null;

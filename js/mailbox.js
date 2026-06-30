@@ -24,12 +24,17 @@ CC.mailbox = {
       const del = e.target.closest('.mitem-del');
       if (del) { e.stopPropagation(); const it = del.closest('.mitem'); if (it) CC.mailbox._del(it.dataset.id, it.dataset.draft || ''); return; }
       const it = e.target.closest('.mitem[data-id]');
-      if (it) CC.mailbox._open(it.dataset.id, it);
+      if (it) {
+        if (CC.mailbox._folder === 'brouillons') CC.mailbox._editDraft(it.dataset.id, it.dataset.draft || '');
+        else CC.mailbox._open(it.dataset.id, it);
+      }
     });
 
     // Réponse / transfert + liens des mails -> navigateur (jamais dans l'app)
     const reader = document.getElementById('mailReader');
     if (reader) reader.addEventListener('click', (e) => {
+      const att = e.target.closest('[data-matt]');
+      if (att) { CC.mailbox._downloadAttachment(att.dataset.matt, att.dataset.mname || '', att.dataset.mmime || ''); return; }
       const act = e.target.closest('button[data-mact]');
       if (act) {
         if (act.dataset.mact === 'reply') CC.mailbox._reply();
@@ -121,9 +126,31 @@ CC.mailbox = {
 
     const m = res.message;
     this._current = m;
+    const atts = m.attachments || [];
+
+    // Images inline (signatures) : remplace les src="cid:..." par des data-URI.
+    let html = m.html || '';
+    if (html) {
+      const inlines = atts.filter((a) => a.inline && a.contentId && a.attachmentId);
+      for (const a of inlines) {
+        try {
+          const r = await window.api.gmail.attachment({ messageId: m.id, attachmentId: a.attachmentId });
+          if (r && r.data) {
+            const uri = 'data:' + (a.mimeType || 'image/png') + ';base64,' + b64urlToStd(r.data);
+            html = html.replace(new RegExp('src\\s*=\\s*("|\')cid:' + escapeRe(a.contentId) + '\\1', 'gi'), 'src="' + uri + '"');
+          }
+        } catch (_) {}
+      }
+    }
     let body;
-    if (m.html) body = `<div class="mail-body">${sanitize(m.html)}</div>`;
+    if (html) body = `<div class="mail-body">${sanitize(html)}</div>`;
     else body = `<div class="mail-body mail-body-text">${esc(m.text || '(message vide)')}</div>`;
+
+    // Barre des pièces jointes (téléchargeables), hors images inline.
+    const files = atts.filter((a) => !a.inline && a.attachmentId);
+    const attBar = files.length ? `<div class="mail-attach-bar">${files.map((a) =>
+      `<button type="button" class="mc-chip mail-att" data-matt="${esc(a.attachmentId)}" data-mname="${esc(a.filename)}" data-mmime="${esc(a.mimeType)}" title="Ouvrir « ${esc(a.filename)} »"><span class="mc-chip-name">📎 ${esc(a.filename)}</span>${a.size ? `<span class="mc-chip-size">${humanSize(a.size)}</span>` : ''}</button>`
+    ).join('')}</div>` : '';
 
     reader.innerHTML = `
       <div class="mail-msg-head">
@@ -139,8 +166,54 @@ CC.mailbox = {
         ${m.a ? `<div class="mail-msg-meta muted">À : ${esc(m.a)}</div>` : ''}
         <div class="mail-msg-meta muted">${esc(longDate(m.date))}</div>
       </div>
-      ${body}`;
+      ${body}
+      ${attBar}`;
     reader.scrollTop = 0;
+  },
+
+  // Ouvre une pièce jointe : PC -> app par défaut ; iPhone -> nouvel onglet/aperçu.
+  async _downloadAttachment(attachmentId, filename, mimeType) {
+    const m = this._current; if (!m || !attachmentId) return;
+    CC.toast('Ouverture de la pièce jointe…');
+    let r;
+    try { r = await window.api.gmail.openAttachment({ messageId: m.id, attachmentId, filename, mimeType }); }
+    catch (e) { r = { error: String(e.message || e) }; }
+    if (r && r.error) CC.toast(r.error, 'err');
+  },
+
+  // Ré-édite un brouillon : recharge destinataires/objet/texte + pièces jointes
+  // dans le compositeur, et lie le draftId pour mettre à jour le MÊME brouillon.
+  async _editDraft(id, draftId) {
+    CC.toast('Ouverture du brouillon…');
+    let res;
+    try { res = await window.api.gmail.get(id); }
+    catch (e) { res = { error: String(e.message || e) }; }
+    if (res && res.error) { CC.toast(res.error, 'err'); return; }
+    const m = res.message;
+    // Pièces jointes existantes -> format du compositeur (base64 standard).
+    const loaded = [];
+    for (const a of (m.attachments || []).filter((x) => x.attachmentId && !x.inline)) {
+      try {
+        const r = await window.api.gmail.attachment({ messageId: id, attachmentId: a.attachmentId });
+        if (r && r.data) loaded.push({ filename: a.filename, mimeType: a.mimeType, dataB64: b64urlToStd(r.data), size: a.size });
+      } catch (_) {}
+    }
+    this._openCompose({
+      titre: 'Modifier le brouillon',
+      to: m.a || '',
+      subject: m.sujet === '(sans objet)' ? '' : m.sujet,
+      body: m.text || stripHtml(m.html) || '',
+      draftId: draftId
+    });
+    this._attachments = loaded;
+    this._renderAttachments();
+    if (m.cc) {
+      const cc = document.getElementById('mc_cc'); if (cc) cc.value = m.cc;
+      const ccRow = document.getElementById('mc_ccRow'), bccRow = document.getElementById('mc_bccRow'), tog = document.getElementById('mcCcToggle');
+      if (ccRow) ccRow.classList.remove('hidden');
+      if (bccRow) bccRow.classList.remove('hidden');
+      if (tog) tog.classList.add('hidden');
+    }
   },
 
   // ----- Suppression (corbeille) -----
@@ -213,8 +286,8 @@ CC.mailbox = {
         <button class="btn btn-primary" id="mcSend">Envoyer</button>
       </div>
     `);
-    // Contexte de fil (réponse) conservé hors DOM
-    this._ctx = { threadId: pre.threadId || '', inReplyTo: pre.inReplyTo || '' };
+    // Contexte de fil (réponse) / brouillon édité, conservé hors DOM
+    this._ctx = { threadId: pre.threadId || '', inReplyTo: pre.inReplyTo || '', draftId: pre.draftId || '' };
     this._attachments = [];
     this._renderAttachments();
 
@@ -349,7 +422,7 @@ CC.mailbox = {
     return {
       to: val('mc_to'), cc: val('mc_cc'), bcc: val('mc_bcc'),
       subject: val('mc_subject'), body: val('mc_body'),
-      threadId: this._ctx.threadId, inReplyTo: this._ctx.inReplyTo,
+      threadId: this._ctx.threadId, inReplyTo: this._ctx.inReplyTo, draftId: this._ctx.draftId,
       attachments: this._attachments || []
     };
   },
@@ -365,7 +438,8 @@ CC.mailbox = {
     if (res && res.error) { CC.toast(res.error, 'err'); return; }
     CC.toast('Message envoyé ✓', 'ok');
     this._closeCompose();
-    if (this._folder === 'envoyes') this.render();
+    // Rafraîchit la liste si on était dans Envoyés, ou si on vient d'envoyer un brouillon.
+    if (this._folder === 'envoyes' || this._folder === 'brouillons') this.render();
   },
 
   async _saveDraft() {
@@ -443,7 +517,8 @@ function longDate(iso) {
   if (isNaN(d.getTime())) return iso || '';
   return cap(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
-// Nettoie le HTML d'un mail avant affichage (le CSP bloque déjà scripts/images distantes)
+// Nettoie le HTML d'un mail avant affichage (le CSP bloque déjà les scripts ; les
+// images data:/https sont autorisées pour afficher les signatures)
 function sanitize(html) {
   return String(html)
     .replace(/<\s*(script|style|link|meta|title|head|base)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
@@ -479,3 +554,10 @@ function stripHtml(html) {
     .replace(/\n{3,}/g, '\n\n').trim();
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+// base64url -> base64 standard (avec padding) pour data-URI / pièces jointes.
+function b64urlToStd(s) {
+  s = String(s || '').replace(/-/g, '+').replace(/_/g, '/');
+  const pad = s.length % 4;
+  return pad ? s + '='.repeat(4 - pad) : s;
+}
+function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
