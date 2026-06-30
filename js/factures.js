@@ -83,9 +83,9 @@ CC.facturesView = {
     document.getElementById('f_annee').value = e.annee || now.getFullYear();
     document.getElementById('f_trimestre').value = e.trimestre || (Math.floor(now.getMonth() / 3) + 1);
     document.getElementById('f_recue').checked = !!e.dateEncaissement;
-    document.getElementById('f_dateEncaissement').value = e.dateEncaissement || '';
-    document.getElementById('f_dateEnvoi').value = e.dateEnvoi || '';
-    document.getElementById('f_dateEcheance').value = e.dateEcheance || '';
+    CC.dp.set(CC.dp.byInput('f_dateEncaissement'), e.dateEncaissement || '');
+    CC.dp.set(CC.dp.byInput('f_dateEnvoi'), e.dateEnvoi || '');
+    CC.dp.set(CC.dp.byInput('f_dateEcheance'), e.dateEcheance || '');
     document.getElementById('f_notes').value = e.notes || '';
     CC.facturesView.setPj(e.fichier || '');
     document.getElementById('btnDeleteFacture').classList.toggle('hidden', !isEdit);
@@ -116,9 +116,9 @@ CC.facturesView = {
       if (r.montant != null) document.getElementById('f_montant').value = r.montant;
       if (r.num) document.getElementById('f_numFacture').value = r.num;
       if (r.dateEnvoi) {
-        document.getElementById('f_dateEnvoi').value = r.dateEnvoi;
+        CC.dp.set(CC.dp.byInput('f_dateEnvoi'), r.dateEnvoi);
         const env = CC.util.parseDate(r.dateEnvoi);
-        if (env) document.getElementById('f_dateEcheance').value = CC.util.toISO(CC.util.addDays(env, r.echeanceJours || 30));
+        if (env) CC.dp.set(CC.dp.byInput('f_dateEcheance'), CC.util.toISO(CC.util.addDays(env, r.echeanceJours || 30)));
       }
       // Mode de paiement par defaut (Indy = virement / IBAN)
       if (!document.getElementById('f_modePaiement').value) document.getElementById('f_modePaiement').value = 'Virement';
@@ -203,6 +203,8 @@ CC.facturesView = {
     document.getElementById('btnNewFacture').addEventListener('click', () => CC.facturesView.openModal(null));
     const indy = document.getElementById('btnIndy');
     if (indy) indy.addEventListener('click', () => { try { window.api.openUrl('https://app.indy.fr/facturation/factures'); } catch (_) {} });
+    // Sélecteurs de date (composant partagé, cohérent avec l'Agenda)
+    if (CC.dp) CC.dp.init(document.getElementById('modalFacture'));
     document.getElementById('btnCancelModal').addEventListener('click', () => CC.facturesView.closeModal());
 
     // Piece jointe (lecture PDF)
@@ -220,9 +222,10 @@ CC.facturesView = {
 
     // Cocher "reçu" pré-remplit la date du jour ; la date ajuste la période
     document.getElementById('f_recue').addEventListener('change', (e) => {
-      const d = document.getElementById('f_dateEncaissement');
-      if (e.target.checked && !d.value) d.value = CC.util.toISO(new Date());
-      if (!e.target.checked) d.value = '';
+      const w = CC.dp.byInput('f_dateEncaissement');
+      const cur = document.getElementById('f_dateEncaissement').value;
+      if (e.target.checked && !cur) CC.dp.set(w, CC.util.toISO(new Date()));
+      else if (!e.target.checked) CC.dp.set(w, '');
       syncPeriode();
     });
     document.getElementById('f_dateEncaissement').addEventListener('change', () => {

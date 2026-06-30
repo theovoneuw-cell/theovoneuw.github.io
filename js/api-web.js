@@ -399,6 +399,13 @@ window.CC = window.CC || {};
         if (r.__error) return { error: r.__error };
         return { ok: true, id: r.id };
       },
+      async update(payload) {
+        const o = payload || {};
+        if (!o.id) return { error: 'Événement manquant.' };
+        const r = await gsend('PATCH', GCAL + '/' + encodeURIComponent(o.id), o.event);
+        if (r.__error) return { error: r.__error };
+        return { ok: true, id: r.id };
+      },
       async remove(id) {
         if (!id) return { error: 'Événement manquant.' };
         const r = await gsend('DELETE', GCAL + '/' + encodeURIComponent(id), undefined);

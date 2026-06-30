@@ -85,6 +85,7 @@ CC.defaultSettings = function () {
     mailSignature: '',         // signature ajoutee aux mails generes
     mailTon: 'cordial',        // ton par defaut : pro | cordial | ferme
     // --- Frais kilometriques ---
+    adresseDepart: '3 impasse Anhit 06200 Nice',   // depart pre-rempli dans Trajets
     chevauxFiscaux: 5,         // puissance fiscale (determine le tarif par defaut)
     tarifKm: 0.636,            // bareme kilometrique (EUR/km) editable
     vehicleType: '2AxlesAuto', // type vehicule TollGuru (voiture) | 2AxlesMotorcycle (moto)

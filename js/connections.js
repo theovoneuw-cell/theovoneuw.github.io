@@ -31,6 +31,8 @@ CC.connections = {
     const tarif = document.getElementById('setTarifKm');
     if (cv) cv.value = String(s.chevauxFiscaux || 5);
     if (tarif) tarif.value = (s.tarifKm != null ? s.tarifKm : 0.636);
+    const adr = document.getElementById('setAdresseDepart');
+    if (adr) adr.value = s.adresseDepart || '';
     CC.connections.refreshStatus();
   },
 
@@ -144,5 +146,6 @@ CC.connections = {
     // Ton & signature -> settings
     $('setMailTon') && $('setMailTon').addEventListener('change', (e) => { CC.state.settings.mailTon = e.target.value; CC.markDirty(); });
     $('setMailSignature') && $('setMailSignature').addEventListener('change', (e) => { CC.state.settings.mailSignature = e.target.value; CC.markDirty(); });
+    $('setAdresseDepart') && $('setAdresseDepart').addEventListener('change', (e) => { CC.state.settings.adresseDepart = e.target.value.trim(); CC.markDirty(); });
   }
 };

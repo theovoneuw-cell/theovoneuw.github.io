@@ -75,14 +75,15 @@ CC.agenda = {
       m.innerHTML = '<div class="modal ev-modal"><div id="agendaModalBody"></div></div>';
       document.body.appendChild(m);
       m.addEventListener('click', (e) => {
-        // Refermer le mini-calendrier si on clique ailleurs dans la modale
-        const dpPop = document.getElementById('evDatePop');
-        if (dpPop && !dpPop.classList.contains('hidden') && !e.target.closest('#evDateWrap')) dpPop.classList.add('hidden');
+        // Refermer les mini-calendriers si on clique ailleurs dans la modale
+        if (!e.target.closest('.dp')) document.querySelectorAll('.dp-pop:not(.hidden)').forEach((p) => p.classList.add('hidden'));
         if (e.target.id === 'agendaModal' || e.target.closest('[data-ev-close]')) { CC.agenda._closeModal(); return; }
         const add = e.target.closest('[data-ev-add]');
         if (add) { CC.agenda._openCreate(add.dataset.evAdd); return; }
         const open = e.target.closest('[data-ev-open]');
         if (open) { CC.agenda._openEvent(open.dataset.evOpen); return; }
+        const edit = e.target.closest('[data-ev-edit]');
+        if (edit) { CC.agenda._openEdit(edit.dataset.evEdit); return; }
         const del = e.target.closest('[data-ev-del]');
         if (del) { CC.agenda._deleteEvent(del.dataset.evDel); return; }
         const link = e.target.closest('[data-ev-url]');
@@ -144,14 +145,30 @@ CC.agenda = {
     if (!body) return;
     this._offline = !!savedAt;
 
-    // Regroupe par jour + index par id
+    // Regroupe par jour + index par id. Un événement sur PLUSIEURS jours est
+    // ajouté à chacune des journées qu'il couvre (et plus seulement à son début).
     const byDay = {};
     this._events = {};
     (events || []).forEach((e) => {
-      const d = new Date(e.debut);
-      if (isNaN(d.getTime())) return;
-      const key = keyOf(d);
-      (byDay[key] = byDay[key] || []).push(e);
+      const sd = new Date(e.debut);
+      if (isNaN(sd.getTime())) return;
+      // Dernier jour couvert :
+      //  · journée entière : end.date est EXCLUSIVE -> on retire un jour ;
+      //  · horaire : fin incluse -> on retire 1 ms pour ne pas compter un minuit pile.
+      let ed;
+      if (e.journee) ed = e.fin ? new Date(new Date(e.fin).getTime() - 86400000) : new Date(sd);
+      else ed = e.fin ? new Date(new Date(e.fin).getTime() - 1) : new Date(sd);
+      if (isNaN(ed.getTime()) || ed < sd) ed = new Date(sd);
+
+      let cur = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate());
+      const last = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate());
+      let guard = 0;
+      while (cur <= last && guard < 60) {     // garde-fou : 60 jours max
+        const key = keyOf(cur);
+        (byDay[key] = byDay[key] || []).push(e);
+        cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
+        guard++;
+      }
       if (e.id) this._events[e.id] = e;
     });
     this._byDay = byDay;
@@ -215,10 +232,11 @@ CC.agenda = {
     let descHtml = '';
     if (e.description) descHtml = `<div class="ev-desc">${esc(e.description)}</div>`;
 
-    // Suppression possible uniquement en ligne (le cache est en lecture seule).
+    // Modification / suppression possibles uniquement en ligne (cache = lecture seule).
     const delBtn = this._offline ? '' : `<button class="btn btn-danger" data-ev-del="${esc(e.id)}">Supprimer</button>`;
     const actions = [];
-    if (e.lien) actions.push(`<button class="btn btn-primary" data-ev-url="${esc(e.lien)}">Ouvrir dans Google Agenda</button>`);
+    if (!this._offline) actions.push(`<button class="btn btn-primary" data-ev-edit="${esc(e.id)}">Modifier</button>`);
+    if (e.lien) actions.push(`<button class="btn" data-ev-url="${esc(e.lien)}">Ouvrir dans Google Agenda</button>`);
     actions.push('<button class="btn" data-ev-close>Fermer</button>');
 
     this._show(`
@@ -292,56 +310,86 @@ CC.agenda = {
   _openCreate(dateKey) {
     if (this._offline) { CC.toast('Hors connexion : impossible d\'ajouter un événement.', 'err'); return; }
     const day = dateKey || keyOf(new Date());
+    this._openForm({ titre: '', dateDebut: day, dateFin: day, allDay: false, hDebut: '09:00', hFin: '10:00', lieu: '', desc: '', colorId: '' });
+  },
+
+  // ----- Modale : modifier un événement existant -----
+  _openEdit(id) {
+    if (this._offline) { CC.toast('Hors connexion : impossible de modifier un événement.', 'err'); return; }
+    const e = this._events[id];
+    if (!e) return;
+    const sd = new Date(e.debut);
+    const data = { id: id, titre: e.titre || '', lieu: e.lieu || '', desc: e.description || '', colorId: e.couleur || '' };
+    if (e.journee) {
+      data.allDay = true;
+      data.dateDebut = keyOf(sd);
+      // end.date est EXCLUSIVE -> dernier jour réel = fin - 1
+      data.dateFin = e.fin ? keyOf(new Date(new Date(e.fin).getTime() - 86400000)) : keyOf(sd);
+      data.hDebut = '09:00'; data.hFin = '10:00';
+    } else {
+      const fd = e.fin ? new Date(e.fin) : new Date(sd.getTime() + 3600000);
+      data.allDay = false;
+      data.dateDebut = keyOf(sd);
+      data.dateFin = keyOf(fd);
+      data.hDebut = hhmm(sd); data.hFin = hhmm(fd);
+    }
+    this._openForm(data);
+  },
+
+  // Formulaire commun création / édition (deux dates : début ET fin).
+  _openForm(d) {
+    const isEdit = !!d.id;
+    const dpField = (name, value) => `<div class="dp" id="evDateWrap_${name}" data-dp="${name}">
+        <button type="button" class="dp-field" data-dp-btn></button>
+        <input type="hidden" id="evDate_${name}" value="${esc(value)}">
+        <div class="dp-pop hidden" data-dp-pop></div>
+      </div>`;
     this._show(`
       <div class="ev-head">
-        <h2>Nouvel événement</h2>
+        <h2>${isEdit ? 'Modifier l\'événement' : 'Nouvel événement'}</h2>
         <button class="ev-x" data-ev-close title="Fermer">✕</button>
       </div>
       <div class="ev-form">
-        <label class="ev-f">Titre<input id="evTitre" type="text" placeholder="Ex. Atelier IME Les Chênes" maxlength="200"></label>
+        <label class="ev-f">Titre<input id="evTitre" type="text" placeholder="Ex. Atelier IME Les Chênes" maxlength="200" value="${esc(d.titre)}"></label>
         <div class="ev-f-row">
-          <div class="ev-f">Date
-            <div class="dp" id="evDateWrap">
-              <button type="button" class="dp-field" id="evDateBtn"></button>
-              <input type="hidden" id="evDate" value="${day}">
-              <div class="dp-pop hidden" id="evDatePop"></div>
-            </div>
-          </div>
-          <label class="ev-f ev-check"><input id="evAllDay" type="checkbox"> Toute la journée</label>
+          <div class="ev-f">Date de début${dpField('debut', d.dateDebut)}</div>
+          <div class="ev-f">Date de fin${dpField('fin', d.dateFin)}</div>
         </div>
-        <div class="ev-f-row" id="evHeures">
-          <label class="ev-f">Début<input id="evDebut" type="time" value="09:00"></label>
-          <label class="ev-f">Fin<input id="evFin" type="time" value="10:00"></label>
+        <label class="ev-f ev-check"><input id="evAllDay" type="checkbox"${d.allDay ? ' checked' : ''}> Toute la journée</label>
+        <div class="ev-f-row" id="evHeures"${d.allDay ? ' style="display:none"' : ''}>
+          <label class="ev-f">Heure de début<input id="evDebut" type="time" value="${esc(d.hDebut)}"></label>
+          <label class="ev-f">Heure de fin<input id="evFin" type="time" value="${esc(d.hFin)}"></label>
         </div>
-        <label class="ev-f">Lieu<input id="evLieu" type="text" placeholder="(optionnel)"></label>
-        <label class="ev-f">Description<textarea id="evDesc" rows="3" placeholder="(optionnel)"></textarea></label>
+        <label class="ev-f">Lieu<input id="evLieu" type="text" placeholder="(optionnel)" value="${esc(d.lieu)}"></label>
+        <label class="ev-f">Description<textarea id="evDesc" rows="3" placeholder="(optionnel)">${esc(d.desc)}</textarea></label>
         <div class="ev-f">Couleur
           <div class="ev-colors" id="evColors">
-            <button type="button" class="ev-sw active" data-color="" title="Par défaut" style="--sw:${AG_ACCENT}"></button>
-            ${Object.keys(GCAL_COLORS).map((id) => `<button type="button" class="ev-sw" data-color="${id}" title="${GCAL_COLORS[id].nom}" style="--sw:${GCAL_COLORS[id].hex}"></button>`).join('')}
+            <button type="button" class="ev-sw${d.colorId ? '' : ' active'}" data-color="" title="Par défaut" style="--sw:${AG_ACCENT}"></button>
+            ${Object.keys(GCAL_COLORS).map((id) => `<button type="button" class="ev-sw${d.colorId === id ? ' active' : ''}" data-color="${id}" title="${GCAL_COLORS[id].nom}" style="--sw:${GCAL_COLORS[id].hex}"></button>`).join('')}
           </div>
         </div>
       </div>
       <div class="modal-actions"><span class="spacer"></span>
         <button class="btn" data-ev-close>Annuler</button>
-        <button class="btn btn-primary" id="evSave">Enregistrer dans Google Agenda</button>
+        <button class="btn btn-primary" id="evSave">${isEdit ? 'Enregistrer les modifications' : 'Enregistrer dans Google Agenda'}</button>
       </div>
     `);
-    // Mini-calendrier maison (remplace le sélecteur de date natif)
-    this._dpInit(day);
-    const dpWrap = document.getElementById('evDateWrap');
-    if (dpWrap) dpWrap.addEventListener('click', (ev) => {
-      if (ev.target.closest('#evDateBtn')) { CC.agenda._dpToggle(); return; }
-      const nav = ev.target.closest('[data-dp-nav]');
-      if (nav) { const m = CC.agenda._dpView; CC.agenda._dpView = new Date(m.getFullYear(), m.getMonth() + parseInt(nav.dataset.dpNav, 10), 1); CC.agenda._dpRenderPop(); return; }
-      const dd = ev.target.closest('[data-dp-day]');
-      if (dd) { CC.agenda._dpValue = dd.dataset.dpDay; CC.agenda._dpLabel(); CC.agenda._dpToggle(false); }
-    });
+
+    // Deux mini-calendriers (composant partagé CC.dp). La fin ne peut pas
+    // précéder le début : on la réaligne automatiquement.
+    CC.dp.init(document.getElementById('agendaModalBody'));
+    const wd = document.getElementById('evDateWrap_debut');
+    const wf = document.getElementById('evDateWrap_fin');
+    if (wd) wd._dpOnChange = (val) => {
+      const fin = document.getElementById('evDate_fin');
+      if (wf && val && fin && fin.value && fin.value < val) CC.dp.set(wf, val);
+    };
 
     const allDay = document.getElementById('evAllDay');
     const heures = document.getElementById('evHeures');
     allDay.addEventListener('change', () => { heures.style.display = allDay.checked ? 'none' : ''; });
-    this._newColor = '';
+
+    this._newColor = d.colorId || '';
     const colors = document.getElementById('evColors');
     if (colors) colors.addEventListener('click', (ev) => {
       const sw = ev.target.closest('.ev-sw');
@@ -350,96 +398,55 @@ CC.agenda = {
       sw.classList.add('active');
       CC.agenda._newColor = sw.dataset.color || '';
     });
-    document.getElementById('evSave').addEventListener('click', () => CC.agenda._saveEvent());
+    document.getElementById('evSave').addEventListener('click', () => CC.agenda._saveEvent(d.id || ''));
     setTimeout(() => { const t = document.getElementById('evTitre'); if (t) t.focus(); }, 60);
   },
 
-  async _saveEvent() {
-    const v = (id) => document.getElementById(id);
+  // id fourni -> mise à jour de l'événement ; sinon création.
+  async _saveEvent(id) {
+    const v = (x) => document.getElementById(x);
     const titre = v('evTitre').value.trim();
     if (!titre) { CC.toast('Donne un titre à l\'événement.', 'err'); v('evTitre').focus(); return; }
-    const date = v('evDate').value;
-    if (!date) { CC.toast('Choisis une date.', 'err'); return; }
+    const dDeb = v('evDate_debut').value;
+    const dFin = v('evDate_fin').value || dDeb;
+    if (!dDeb) { CC.toast('Choisis une date de début.', 'err'); return; }
 
     const event = { summary: titre };
-    const lieu = v('evLieu').value.trim(); if (lieu) event.location = lieu;
-    const desc = v('evDesc').value.trim(); if (desc) event.description = desc;
+    event.location = v('evLieu').value.trim();       // chaîne vide => efface (PATCH)
+    event.description = v('evDesc').value.trim();
     if (this._newColor) event.colorId = this._newColor;
 
-    const [y, mo, da] = date.split('-').map(Number);
+    const [y1, mo1, da1] = dDeb.split('-').map(Number);
+    const [y2, mo2, da2] = dFin.split('-').map(Number);
     if (v('evAllDay').checked) {
-      event.start = { date };
-      event.end = { date: keyOf(new Date(y, mo - 1, da + 1)) };
+      event.start = { date: dDeb, dateTime: null };
+      // end.date est EXCLUSIVE -> +1 jour sur la date de fin
+      event.end = { date: keyOf(new Date(y2, mo2 - 1, da2 + 1)), dateTime: null };
     } else {
       const [h1, m1] = (v('evDebut').value || '09:00').split(':').map(Number);
       const [h2, m2] = (v('evFin').value || '10:00').split(':').map(Number);
-      const start = new Date(y, mo - 1, da, h1, m1);
-      let end = new Date(y, mo - 1, da, h2, m2);
+      const start = new Date(y1, mo1 - 1, da1, h1, m1);
+      let end = new Date(y2, mo2 - 1, da2, h2, m2);
       if (end <= start) end = new Date(start.getTime() + 3600000);
-      event.start = { dateTime: start.toISOString() };
-      event.end = { dateTime: end.toISOString() };
+      event.start = { dateTime: start.toISOString(), date: null };
+      event.end = { dateTime: end.toISOString(), date: null };
     }
 
     const btn = document.getElementById('evSave');
+    const label = btn.textContent;
     btn.disabled = true; btn.textContent = 'Enregistrement…';
     let res;
-    try { res = await window.api.gcal.create(event); }
+    try { res = id ? await window.api.gcal.update({ id, event }) : await window.api.gcal.create(event); }
     catch (e) { res = { error: String(e.message || e) }; }
-    btn.disabled = false; btn.textContent = 'Enregistrer dans Google Agenda';
+    btn.disabled = false; btn.textContent = label;
 
     if (res && res.error) { CC.toast(res.error, 'err'); return; }
-    CC.toast('Événement ajouté à Google Agenda ✓', 'ok');
+    CC.toast(id ? 'Événement modifié ✓' : 'Événement ajouté à Google Agenda ✓', 'ok');
     this._closeModal();
-    // Se replacer sur le mois de l'événement créé, puis rafraîchir (met le cache à jour)
-    this.cur = new Date(y, mo - 1, 1);
+    // Se replacer sur le mois de l'événement, puis rafraîchir (met le cache à jour)
+    this.cur = new Date(y1, mo1 - 1, 1);
     this.render();
     if (CC.renderToday) CC.renderToday();
-  },
-
-  // ----- Mini date-picker maison -----
-  _dpInit(valueKey) {
-    this._dpValue = valueKey;
-    const [y, m] = valueKey.split('-').map(Number);
-    this._dpView = new Date(y, m - 1, 1);
-    this._dpLabel();
-  },
-  _dpLabel() {
-    const btn = document.getElementById('evDateBtn');
-    if (!btn) return;
-    const [y, m, d] = this._dpValue.split('-').map(Number);
-    btn.textContent = cap(new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }));
-  },
-  _dpToggle(force) {
-    const pop = document.getElementById('evDatePop');
-    if (!pop) return;
-    const open = (force !== undefined) ? force : pop.classList.contains('hidden');
-    if (open) { this._dpRenderPop(); pop.classList.remove('hidden'); } else pop.classList.add('hidden');
-  },
-  _dpRenderPop() {
-    const pop = document.getElementById('evDatePop');
-    if (!pop) return;
-    const m = this._dpView;
-    const first = new Date(m.getFullYear(), m.getMonth(), 1);
-    const off = (first.getDay() + 6) % 7;
-    const gs = new Date(m.getFullYear(), m.getMonth(), 1 - off);
-    const todayKey = keyOf(new Date());
-    let html = `<div class="dp-head">
-      <button type="button" class="dp-nav" data-dp-nav="-1" title="Mois précédent">‹</button>
-      <span class="dp-title">${cap(AG_MOIS[m.getMonth()])} ${m.getFullYear()}</span>
-      <button type="button" class="dp-nav" data-dp-nav="1" title="Mois suivant">›</button>
-    </div><div class="dp-grid">`;
-    html += AG_JOURS.map((j) => `<span class="dp-hd">${j[0]}</span>`).join('');
-    for (let i = 0; i < 42; i++) {
-      const d = new Date(gs.getFullYear(), gs.getMonth(), gs.getDate() + i);
-      const key = keyOf(d);
-      const cls = ['dp-day'];
-      if (d.getMonth() !== m.getMonth()) cls.push('out');
-      if (key === todayKey) cls.push('today');
-      if (key === this._dpValue) cls.push('sel');
-      html += `<button type="button" class="${cls.join(' ')}" data-dp-day="${key}">${d.getDate()}</button>`;
-    }
-    html += '</div>';
-    pop.innerHTML = html;
   },
 
   _show(html) {
@@ -460,6 +467,7 @@ function metaRow(ic, txt) { return `<div class="ev-meta"><span class="ev-ic">${i
 function keyOf(d) { const z = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; }
 function monthKeyOf(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
 function heure(iso) { const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+function hhmm(d) { const z = (n) => String(n).padStart(2, '0'); return z(d.getHours()) + ':' + z(d.getMinutes()); }
 function frDateTime(iso) { const d = new Date(iso); if (isNaN(d.getTime())) return ''; return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }

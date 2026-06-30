@@ -8,7 +8,7 @@
 // Pensé pour le déploiement « à plat » (web/) : tout est à la racine du site.
 // ---------------------------------------------------------------------------
 
-const CACHE = 'macompta-v6';
+const CACHE = 'macompta-v7';
 
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
@@ -18,7 +18,7 @@ const SHELL = [
   'assets/fonts/manrope-600.woff2', 'assets/fonts/manrope-700.woff2',
   'assets/fonts/sora-500.woff2', 'assets/fonts/sora-600.woff2', 'assets/fonts/sora-700.woff2',
   'vendor/chart.umd.js', 'vendor/xlsx.full.min.js', 'vendor/pdf.min.js', 'vendor/leaflet/leaflet.js',
-  'js/settings.js', 'js/stats.js', 'js/charts.js', 'js/import.js', 'js/pdfimport.js',
+  'js/settings.js', 'js/datepicker.js', 'js/stats.js', 'js/charts.js', 'js/import.js', 'js/pdfimport.js',
   'js/factures.js', 'js/fiscal.js', 'js/bilan.js', 'js/ai.js', 'js/connections.js',
   'js/agenda.js', 'js/mailbox.js', 'js/trajets.js', 'js/notes.js', 'js/today.js',
   'js/privacy.js', 'js/storage.js', 'js/app.js',

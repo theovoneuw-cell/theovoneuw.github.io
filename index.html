@@ -334,7 +334,17 @@
         </div>
 
         <div class="card trajet-result-card">
-          <div id="tj_map" class="trajet-map"></div>
+          <div class="trajet-map-wrap">
+            <div id="tj_map" class="trajet-map"></div>
+            <div class="trajet-legend">
+              <span class="tj-leg"><i class="tj-dot a"></i>Départ</span>
+              <span class="tj-leg"><i class="tj-dot b"></i>Arrivée</span>
+            </div>
+            <div class="trajet-map-hint">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              <div>Saisis un départ et une arrivée,<br>puis <b>Calculer</b> pour tracer l'itinéraire.</div>
+            </div>
+          </div>
           <div id="tj_result" class="trajet-result"></div>
         </div>
       </div>
@@ -386,6 +396,10 @@
 
     <!-- ===================== RÉDACTION (IA) ===================== -->
     <section id="tab-redaction" class="panel">
+      <div class="ai-head">
+        <h2>Assistant IA</h2>
+        <p>Pose tes questions à Gemini — plusieurs discussions, l'historique reste sur cet appareil.</p>
+      </div>
       <div class="ai-layout">
         <aside class="ai-sidebar">
           <button type="button" id="aiNew" class="btn btn-primary ai-new">+ Nouvelle discussion</button>
@@ -539,6 +553,11 @@
                   <small>Barème 2024 simplifié, modifiable.</small>
                 </div>
               </div>
+              <div class="field">
+                <label>Adresse de départ par défaut</label>
+                <input type="text" id="setAdresseDepart" class="input" placeholder="ex. 3 impasse Anhit 06200 Nice" />
+                <small>Pré-remplie comme point de départ dans l'onglet Trajets.</small>
+              </div>
             </div>
 
             <div class="conn-block">
@@ -657,17 +676,29 @@
           <div class="form-grid">
             <div class="field">
               <label class="check"><input type="checkbox" id="f_recue" /> Paiement reçu</label>
-              <input type="date" id="f_dateEncaissement" class="input" />
+              <div class="dp" data-dp-clearable data-dp-placeholder="Choisir une date">
+                <button type="button" class="dp-field" data-dp-btn></button>
+                <input type="hidden" id="f_dateEncaissement" />
+                <div class="dp-pop hidden" data-dp-pop></div>
+              </div>
               <small>La date d'encaissement détermine la période et compte dans le CA / URSSAF.</small>
             </div>
             <div class="field">
               <label>Date d'envoi / émission (optionnel)</label>
-              <input type="date" id="f_dateEnvoi" class="input" />
+              <div class="dp" data-dp-clearable data-dp-placeholder="Choisir une date">
+                <button type="button" class="dp-field" data-dp-btn></button>
+                <input type="hidden" id="f_dateEnvoi" />
+                <div class="dp-pop hidden" data-dp-pop></div>
+              </div>
               <small>Date d'émission de la facture (sur le PDF Indy).</small>
             </div>
             <div class="field">
               <label>Date d'échéance (optionnel)</label>
-              <input type="date" id="f_dateEcheance" class="input" />
+              <div class="dp" data-dp-clearable data-dp-placeholder="Choisir une date">
+                <button type="button" class="dp-field" data-dp-btn></button>
+                <input type="hidden" id="f_dateEcheance" />
+                <div class="dp-pop hidden" data-dp-pop></div>
+              </div>
               <small>Si dépassée et non payée → « en retard ».</small>
             </div>
           </div>
@@ -698,6 +729,7 @@
   <script src="js/drive-store.js"></script>
   <script src="js/api-web.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/datepicker.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/import.js"></script>

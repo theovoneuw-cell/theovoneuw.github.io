@@ -21,6 +21,11 @@ CC.trajets = {
     CC.trajets.ensureMap();
     CC.trajets.renderRate();
     CC.trajets.renderList();
+    // Pré-remplit le départ avec l'adresse par défaut (si rien de saisi/sélectionné).
+    const from = document.getElementById('tj_from');
+    if (from && !from.value.trim() && !CC.trajets._from) {
+      from.value = (CC.state.settings && CC.state.settings.adresseDepart) || '';
+    }
     // La carte a pu être créée hors écran : recalculer ses dimensions.
     if (CC.trajets._map) setTimeout(() => CC.trajets._map.invalidateSize(), 60);
   },
@@ -210,6 +215,10 @@ CC.trajets = {
 
     if (CC.trajets._route) map.fitBounds(CC.trajets._route.getBounds().pad(0.15));
     else map.fitBounds(L.latLngBounds([[from.lat, from.lon], [to.lat, to.lon]]).pad(0.2));
+
+    // Masque l'état vide (l'itinéraire est désormais tracé).
+    const wrap = document.querySelector('.trajet-map-wrap');
+    if (wrap) wrap.classList.add('has-route');
   },
 
   showResult(d) {
