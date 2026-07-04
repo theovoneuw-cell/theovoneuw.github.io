@@ -15,16 +15,25 @@ CC.stats = {
 
   // Periode de reference (annee/trimestre) : la feuille Excel fait foi ;
   // pour une facture payee sans periode explicite, on prend la date d'encaissement.
-  yearOf(f) {
-    if (f.annee) return +f.annee;
-    if (f.dateEncaissement) return CC.util.yearOf(f.dateEncaissement);
-    return null;
+  //
+  // Bascule automatique : toute facture NON encaissée (en attente, en retard OU
+  // prévisionnelle) dont le trimestre de référence est déjà terminé passe sur le
+  // trimestre EN COURS (le CA micro-BNC se déclare à l'encaissement, qui arrivera
+  // plus tard). Le calcul est dynamique — aucune donnée n'est modifiée ; dès qu'elle
+  // est payée, la période réelle d'encaissement reprend le dessus. Une facture
+  // planifiée sur un trimestre FUTUR n'est jamais avancée.
+  _periodOf(f, today) {
+    let y = f.annee ? +f.annee : (f.dateEncaissement ? CC.util.yearOf(f.dateEncaissement) : null);
+    let t = f.trimestre ? +f.trimestre : (f.dateEncaissement ? CC.util.trimestreOfDate(f.dateEncaissement) : null);
+    if (y != null && t != null && !f.dateEncaissement) {
+      const now = today || new Date();
+      const cy = now.getFullYear(), ct = Math.floor(now.getMonth() / 3) + 1;
+      if (y * 4 + t < cy * 4 + ct) { y = cy; t = ct; }   // trimestre passé -> trimestre en cours
+    }
+    return { y, t };
   },
-  trimOf(f) {
-    if (f.trimestre) return +f.trimestre;
-    if (f.dateEncaissement) return CC.util.trimestreOfDate(f.dateEncaissement);
-    return null;
-  },
+  yearOf(f) { return CC.stats._periodOf(f).y; },
+  trimOf(f) { return CC.stats._periodOf(f).t; },
 
   // Statut : 'recue' (paye) | 'prevu' (pas encore emise, sans n°) | 'attente' | 'retard'
   statut(f, settings, today = new Date()) {

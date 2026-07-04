@@ -71,6 +71,7 @@ CC.defaultSettings = function () {
       2026: [25.6, 25.6, 25.6, 25.6]
     },
     defaultUrssafRate: 26.1,   // annees non renseignees
+    tauxFraisAnnexes: 0.155,   // CFP + taxe CCI/CMA : s'ajoutent au taux de cotisations (≈ 0,155 % du CA)
     versementActif: false,
     tauxImpot: 2.2,
     abattementBNC: 34,         // abattement forfaitaire micro-BNC
@@ -85,7 +86,7 @@ CC.defaultSettings = function () {
     mailSignature: '',         // signature ajoutee aux mails generes
     mailTon: 'cordial',        // ton par defaut : pro | cordial | ferme
     // --- Frais kilometriques ---
-    adresseDepart: '3 impasse Anhit 06200 Nice',   // depart pre-rempli dans Trajets
+    adresseDepart: '3 impasse Anahit 06200 Nice',   // depart pre-rempli dans Trajets
     chevauxFiscaux: 5,         // puissance fiscale (determine le tarif par defaut)
     tarifKm: 0.636,            // bareme kilometrique (EUR/km) editable
     vehicleType: '2AxlesAuto', // type vehicule TollGuru (voiture) | 2AxlesMotorcycle (moto)
@@ -126,12 +127,17 @@ CC.util.categoryOf = function (libelle) {
   return 'Autre';
 };
 
-// Taux URSSAF applicable a une annee/trimestre donnes
+// Taux global de prélèvement URSSAF applicable a une annee/trimestre donnes.
+// = taux de cotisations sociales (tableau) + frais annexes (CFP + taxe CCI/CMA),
+// afin que l'estimation colle au "Total des cotisations et contributions" réel.
 CC.urssafRate = function (year, trimestre) {
   const s = CC.state.settings;
   const row = s.urssafRates[year];
-  if (row && row[trimestre - 1] != null && !isNaN(row[trimestre - 1])) return row[trimestre - 1];
-  return s.defaultUrssafRate || 0;
+  let base;
+  if (row && row[trimestre - 1] != null && !isNaN(row[trimestre - 1])) base = row[trimestre - 1];
+  else base = s.defaultUrssafRate || 0;
+  const frais = (s.tauxFraisAnnexes != null && !isNaN(s.tauxFraisAnnexes)) ? s.tauxFraisAnnexes : 0.155;
+  return Math.round((base + frais) * 1000) / 1000;   // 3 décimales : garde la précision CFP/CCI
 };
 
 // ---------------------------------------------------------------------------
@@ -149,6 +155,8 @@ CC.renderSettings = function () {
   document.getElementById('setPlafond').value = s.plafond || '';
   document.getElementById('setObjectif').value = s.objectif || '';
   document.getElementById('setDefaultRate').value = s.defaultUrssafRate;
+  const fa = document.getElementById('setFraisAnnexes');
+  if (fa) fa.value = (s.tauxFraisAnnexes != null ? s.tauxFraisAnnexes : 0.155);
   CC.renderUrssafTable();
 };
 
@@ -193,7 +201,8 @@ CC.bindSettings = function () {
     setDelai: ['delaiPaiement', 'int'],
     setPlafond: ['plafond', 'num'],
     setObjectif: ['objectif', 'num'],
-    setDefaultRate: ['defaultUrssafRate', 'num']
+    setDefaultRate: ['defaultUrssafRate', 'num'],
+    setFraisAnnexes: ['tauxFraisAnnexes', 'num']
   };
   Object.keys(map).forEach((id) => {
     const [key, type] = map[id];

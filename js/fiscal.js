@@ -47,7 +47,7 @@ CC.renderFiscal = function () {
         <div class="un-info">
           <div class="un-trim">T${sel.t} ${sel.y} <span class="un-dl ${dlCls}">${dlTxt}</span></div>
           <div class="un-ca">${CC.util.eur0(enc)}</div>
-          <div class="un-note">CA encaissé du trimestre · cotisation URSSAF estimée <b>${CC.util.eur0(urssaf)}</b> (${String(taux).replace('.', ',')} %)</div>
+          <div class="un-note">CA encaissé du trimestre · cotisations + contributions URSSAF estimées <b>${CC.util.eur0(urssaf)}</b> (${String(taux).replace('.', ',')} %, CFP/CCI inclus)</div>
         </div>
         <div class="un-actions">
           <button type="button" class="btn btn-primary" id="unCopy">Copier&nbsp;: ${caR.toLocaleString('fr-FR')} €</button>

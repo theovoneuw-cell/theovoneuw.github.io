@@ -1,6 +1,20 @@
 'use strict';
 window.CC = window.CC || {};
 
+// PC (Electron) uniquement : le sélecteur d'emojis n'est proposé que sur l'app PC.
+const IS_PC = /Electron/i.test(navigator.userAgent) || location.protocol === 'file:';
+
+// Emojis proposés dans le composeur (regroupés par thème, ordre = affichage).
+const EMOJI_SET = [
+  '🙂','😀','😃','😄','😁','😉','😊','😇','🥰','😍','😘','😗','🙃','😌','😎','🤩',
+  '🤗','🤔','🙄','😴','😅','😂','🤣','😢','😭','😉','😳','🥺','😬','😱','🤯','😤',
+  '👍','👎','👌','🙏','👏','🙌','💪','🤝','✌️','🤞','👋','✍️','🫡','👀','🧠','💡',
+  '❤️','🧡','💛','💚','💙','💜','🖤','💖','💯','🔥','✨','⭐','🎉','🎊','🎁','🏆',
+  '✅','☑️','✔️','❌','⚠️','❓','❗','📌','📎','📁','📂','🗂️','📅','📆','⏰','⏳',
+  '💶','💰','💳','🧾','📈','📉','📊','🏦','✉️','📧','📨','📬','📞','☎️','📱','💻',
+  '🚀','🎯','🤖','☕','🍀','🌟','👉','👈','➡️','⬅️','🔗','🆗','🆕','🔔','🌍','📍',
+];
+
 // ---------------------------------------------------------------------------
 // Mails — lecture de la messagerie Gmail (boîte principale, envoyés, brouillons).
 // Étape 1 : consultation seule. (L'envoi / la composition viendront en étape 2.)
@@ -9,6 +23,9 @@ CC.mailbox = {
   _folder: 'principal',
   _bound: false,
   _list: [],
+  _search: '',      // mots-clés de recherche en cours (PC uniquement)
+  _reqSeq: 0,       // jeton anti-course : ignore les réponses périmées
+  _searchTimer: null,
 
   bind() {
     if (this._bound) return;
@@ -17,6 +34,37 @@ CC.mailbox = {
     });
     const r = document.getElementById('mailRefresh');
     if (r) r.addEventListener('click', () => CC.mailbox.render());
+
+    // Barre de recherche — PC uniquement (retirée sur mobile/PWA).
+    const searchWrap = document.getElementById('mailSearchWrap');
+    if (searchWrap && !IS_PC) {
+      searchWrap.remove();
+    } else if (searchWrap) {
+      const input = document.getElementById('mailSearch');
+      const clear = document.getElementById('mailSearchClear');
+      const run = () => {
+        const v = input.value.trim();
+        if (v === CC.mailbox._search) return;
+        CC.mailbox._search = v;
+        if (clear) clear.classList.toggle('hidden', !v);
+        CC.mailbox.render();
+      };
+      if (input) {
+        // Recherche « live » temporisée (évite un appel réseau par frappe).
+        input.addEventListener('input', () => {
+          clearTimeout(CC.mailbox._searchTimer);
+          CC.mailbox._searchTimer = setTimeout(run, 450);
+        });
+        // Entrée = recherche immédiate ; Échap = efface.
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); clearTimeout(CC.mailbox._searchTimer); run(); }
+          else if (e.key === 'Escape' && input.value) { e.preventDefault(); e.stopPropagation(); input.value = ''; clearTimeout(CC.mailbox._searchTimer); run(); }
+        });
+      }
+      if (clear) clear.addEventListener('click', () => {
+        input.value = ''; clearTimeout(CC.mailbox._searchTimer); run(); input.focus();
+      });
+    }
 
     const list = document.getElementById('mailList');
     if (list) list.addEventListener('click', (e) => {
@@ -76,12 +124,16 @@ CC.mailbox = {
     const list = document.getElementById('mailList');
     const reader = document.getElementById('mailReader');
     if (!list) return;
-    list.innerHTML = '<div class="ck-empty">Chargement des mails…</div>';
+    const search = this._search || '';
+    const seq = ++this._reqSeq;   // marque cette requête ; les réponses plus anciennes seront ignorées
+    list.innerHTML = `<div class="ck-empty">${search ? 'Recherche…' : 'Chargement des mails…'}</div>`;
     if (reader) reader.innerHTML = '<div class="mail-empty">Sélectionne un message pour le lire.</div>';
 
     let res;
-    try { res = await window.api.gmail.list({ dossier: this._folder, maxResults: 25 }); }
+    try { res = await window.api.gmail.list({ dossier: this._folder, maxResults: search ? 50 : 25, recherche: search }); }
     catch (e) { res = { error: e.message }; }
+
+    if (seq !== this._reqSeq) return;   // une recherche plus récente a été lancée entre-temps
 
     if (res && res.error) {
       if (/connect|autoris|non connecté/i.test(res.error)) {
@@ -94,7 +146,12 @@ CC.mailbox = {
 
     if (CC.updateMailBadge) CC.updateMailBadge();   // rafraîchit le compteur non lus
     this._list = (res && res.messages) || [];
-    if (!this._list.length) { list.innerHTML = '<div class="mail-empty">Aucun message.</div>'; return; }
+    if (!this._list.length) {
+      list.innerHTML = search
+        ? `<div class="mail-empty">Aucun mail ne correspond à «&nbsp;${esc(search)}&nbsp;».</div>`
+        : '<div class="mail-empty">Aucun message.</div>';
+      return;
+    }
 
     const sent = (this._folder !== 'principal');
     list.innerHTML = this._list.map((m) => {
@@ -268,7 +325,7 @@ CC.mailbox = {
         <label class="ev-f hidden" id="mc_ccRow">Cc<span class="mc-ac"><input id="mc_cc" type="text" autocomplete="off" placeholder="copie@exemple.fr (séparer par des virgules)"><div class="ac-list hidden" id="mc_ccAC"></div></span></label>
         <label class="ev-f hidden" id="mc_bccRow">Cci (copie cachée)<span class="mc-ac"><input id="mc_bcc" type="text" autocomplete="off" placeholder="copie-cachée@exemple.fr"><div class="ac-list hidden" id="mc_bccAC"></div></span></label>
         <label class="ev-f">Objet<input id="mc_subject" type="text" placeholder="Objet du message" value="${esc(pre.subject || '')}"></label>
-        <label class="ev-f">Message<textarea id="mc_body" rows="9" placeholder="Écris ton message…">${esc(pre.body || '')}</textarea></label>
+        <label class="ev-f">Message<div class="mc-body-wrap"><textarea id="mc_body" rows="9" placeholder="Écris ton message…">${esc(pre.body || '')}</textarea>${IS_PC ? '<button type="button" class="mc-emoji-btn" id="mcEmoji" title="Insérer un emoji">🙂</button><div class="mc-emoji-pop hidden" id="mcEmojiPop"></div>' : ''}</div></label>
         <div class="ev-f">Pièces jointes
           <div class="mc-attach">
             <button type="button" class="btn btn-ghost" id="mcAttach"><svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Joindre un fichier</button>
@@ -305,11 +362,41 @@ CC.mailbox = {
       attachBtn.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', (e) => { CC.mailbox._addFiles(e.target.files); e.target.value = ''; });
     }
+    // Sélecteur d'emojis (PC uniquement)
+    if (IS_PC) CC.mailbox._bindEmoji();
     setTimeout(() => { const el = document.getElementById(pre.to ? 'mc_subject' : 'mc_to'); if (el) el.focus(); }, 60);
     CC.mailbox._attachContactAC('mc_to', 'mc_toAC');
     CC.mailbox._attachContactAC('mc_cc', 'mc_ccAC');
     CC.mailbox._attachContactAC('mc_bcc', 'mc_bccAC');
     CC.mailbox._loadContacts();
+  },
+
+  // Sélecteur d'emojis du composeur (PC). Insère l'emoji à la position du curseur.
+  _bindEmoji() {
+    const btn = document.getElementById('mcEmoji');
+    const pop = document.getElementById('mcEmojiPop');
+    const ta = document.getElementById('mc_body');
+    if (!btn || !pop || !ta) return;
+
+    if (!pop._filled) {
+      pop.innerHTML = EMOJI_SET.map((e) => `<button type="button" class="mc-emoji" tabindex="-1">${e}</button>`).join('');
+      pop._filled = true;
+    }
+    const close = () => pop.classList.add('hidden');
+    const toggle = (ev) => { ev.stopPropagation(); pop.classList.toggle('hidden'); };
+
+    btn.addEventListener('click', toggle);
+    pop.addEventListener('mousedown', (ev) => {
+      const b = ev.target.closest('.mc-emoji'); if (!b) return;
+      ev.preventDefault();   // garde le curseur dans le textarea
+      const s = ta.selectionStart, e = ta.selectionEnd, emo = b.textContent;
+      ta.value = ta.value.slice(0, s) + emo + ta.value.slice(e);
+      ta.selectionStart = ta.selectionEnd = s + emo.length;
+      ta.focus();
+    });
+    // Fermeture au clic ailleurs / Échap
+    document.addEventListener('mousedown', (ev) => { if (!pop.contains(ev.target) && ev.target !== btn) close(); });
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') close(); });
   },
 
   // Carnet d'adresses (déduit des mails), récupéré une fois par session.

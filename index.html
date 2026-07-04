@@ -385,6 +385,11 @@
           <button class="mfolder" data-folder="brouillons">Brouillons</button>
         </div>
         <div class="mail-head-actions">
+          <div class="mail-search" id="mailSearchWrap">
+            <span class="mail-search-ico" aria-hidden="true">🔍</span>
+            <input type="search" id="mailSearch" class="mail-search-input" placeholder="Rechercher dans mes mails…" autocomplete="off" spellcheck="false">
+            <button id="mailSearchClear" class="mail-search-clear hidden" type="button" title="Effacer" aria-label="Effacer la recherche">✕</button>
+          </div>
           <button id="mailCompose" class="btn btn-primary">Nouveau message</button>
           <button id="mailRefresh" class="btn" title="Rafraîchir">↻ Actualiser</button>
         </div>
@@ -423,9 +428,16 @@
           <h3>Taux de cotisations URSSAF</h3>
           <p class="card-sub">Un taux par trimestre (le taux évolue dans le temps). Calcul sur l'encaissé. Pré-rempli avec vos taux réels.</p>
           <div id="urssafTable"></div>
-          <div class="field" style="margin-top:14px">
-            <label>Taux par défaut (années non renseignées)</label>
-            <input type="number" id="setDefaultRate" step="0.1" min="0" max="100" class="input mask-amount" style="max-width:140px" />
+          <div class="field-row">
+            <div class="field" style="margin-top:14px">
+              <label>Taux par défaut (années non renseignées)</label>
+              <input type="number" id="setDefaultRate" step="0.1" min="0" max="100" class="input mask-amount" style="max-width:140px" />
+            </div>
+            <div class="field" style="margin-top:14px">
+              <label>Frais annexes (CFP + CCI/CMA)</label>
+              <input type="number" id="setFraisAnnexes" step="0.005" min="0" max="10" class="input mask-amount" style="max-width:140px" />
+              <small>Ajouté au taux de cotisations pour coller au total prélevé (≈ 0,155 %).</small>
+            </div>
           </div>
         </div>
 
@@ -556,7 +568,7 @@
               </div>
               <div class="field">
                 <label>Adresse de départ par défaut</label>
-                <input type="text" id="setAdresseDepart" class="input" placeholder="ex. 3 impasse Anhit 06200 Nice" />
+                <input type="text" id="setAdresseDepart" class="input" placeholder="ex. 3 impasse Anahit 06200 Nice" />
                 <small>Pré-remplie comme point de départ dans l'onglet Trajets.</small>
               </div>
             </div>

@@ -341,7 +341,14 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .suivi { border: 1px solid var(--border); border-radius: 10px; padding: 15px 17px; margin-top: 15px; background: var(--surface-2); }
 .suivi legend { padding: 0 8px; color: var(--muted); font-size: 11.5px; font-weight: 600; }
-.modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; }
+.modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+/* Mobile : les boutons d'action débordaient (« Fermer » coupé). On masque l'espaceur
+   et on laisse les boutons passer à la ligne en remplissant la largeur. */
+@media (max-width: 560px) {
+  .modal-actions { gap: 8px; }
+  .modal-actions .spacer { display: none; }
+  .modal-actions .btn { flex: 1 1 auto; }
+}
 
 /* ===================== PIECE JOINTE (lecture PDF) ===================== */
 .pj-zone { border: 1px dashed var(--border-strong); border-radius: 11px; padding: 13px 15px; margin-bottom: 16px; background: var(--accent-soft); }
@@ -608,7 +615,17 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .mail-body img { max-width: 100%; height: auto; }
 .mail-body a { color: var(--accent); }
 .mail-body table { max-width: 100%; }
-.mail-head-actions { display: flex; gap: 10px; }
+.mail-head-actions { display: flex; align-items: center; gap: 10px; }
+/* Barre de recherche des mails (PC uniquement) */
+.mail-search { position: relative; display: inline-flex; align-items: center; }
+.mail-search-ico { position: absolute; left: 10px; font-size: 12px; opacity: .65; pointer-events: none; }
+.mail-search-input { width: 240px; max-width: 42vw; padding: 8px 30px 8px 30px; font-family: inherit; font-size: 13px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; outline: none; transition: border-color .12s ease, box-shadow .12s ease, width .12s ease; }
+.mail-search-input::placeholder { color: var(--soft); }
+.mail-search-input:focus { width: 300px; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface); }
+.mail-search-input::-webkit-search-cancel-button { display: none; }
+.mail-search-clear { position: absolute; right: 6px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 12px; line-height: 1; color: var(--soft); background: none; border: none; border-radius: 6px; cursor: pointer; }
+.mail-search-clear:hover { color: var(--red); background: var(--surface-2); }
+.mail-search-clear.hidden { display: none; }
 .mail-msg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .mail-msg-top h2 { margin: 0; flex: 1; }
 .mail-msg-actions { display: flex; gap: 8px; flex-shrink: 0; }
@@ -630,6 +647,17 @@ button.lnk { background: none; border: none; cursor: pointer; font-family: inher
 .mc-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px 5px 11px; font-size: 12px; }
 .mc-chip-name { font-weight: 600; color: var(--ink); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-chip-size { color: var(--soft); font-size: 11px; }
+/* Sélecteur d'emojis du composeur (PC uniquement) */
+.mc-body-wrap { position: relative; }
+/* Le textarea doit remplir le wrapper (sinon il retombe à sa largeur intrinsèque ~20 cols). */
+.mc-body-wrap textarea { display: block; width: 100%; box-sizing: border-box; }
+/* Réserve la place du bouton emoji (PC uniquement : présent seulement quand le bouton existe). */
+.mc-body-wrap:has(.mc-emoji-btn) textarea { padding-right: 46px; }
+.mc-emoji-btn { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 17px; line-height: 1; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; box-shadow: var(--shadow-soft); transition: border-color .12s ease, transform .12s ease; }
+.mc-emoji-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+.mc-emoji-pop { position: absolute; right: 8px; bottom: 44px; z-index: 80; width: 296px; max-height: 232px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-card); }
+.mc-emoji { width: 100%; aspect-ratio: 1; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 19px; line-height: 1; background: none; border: none; border-radius: 7px; cursor: pointer; }
+.mc-emoji:hover { background: var(--accent-soft); }
 .mc-chip-x { background: none; border: none; color: var(--soft); cursor: pointer; font-size: 12px; padding: 0 2px; border-radius: 5px; line-height: 1; }
 .mc-chip-x:hover { color: var(--red); }
 

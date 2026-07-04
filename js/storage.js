@@ -18,6 +18,8 @@ CC.storage = {
     if (!obj || typeof obj !== 'object') throw new Error('Fichier invalide');
     const s = Object.assign(CC.defaultSettings(), obj.settings || {});
     if (obj.settings && obj.settings.urssafRates) s.urssafRates = obj.settings.urssafRates;
+    // Corrige la coquille "Anhit" -> "Anahit" sur une adresse de départ déjà enregistrée.
+    if (s.adresseDepart) s.adresseDepart = s.adresseDepart.replace(/Anhit/g, 'Anahit');
     CC.state.settings = s;
     CC.state.declarations = obj.declarations || {};
     CC.state.factures = Array.isArray(obj.factures) ? obj.factures.map(normalize) : [];

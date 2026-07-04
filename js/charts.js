@@ -103,13 +103,38 @@ CC.renderDashboard = function () {
 
   // ---------- Top clients ----------
   const top = CC.stats.topClients(fy, 8);
+  // Part de chaque client dans le CA total facturé de la période (tous clients, pas seulement le top 8).
+  const caClientsTotal = fy.reduce((a, f) => a + (+f.montant || 0), 0);
+  top.forEach((c) => { c.pct = caClientsTotal ? (c.total / caClientsTotal) * 100 : 0; });
+  // Plugin inline : écrit le % au bout de chaque barre.
+  const pctAuBout = {
+    id: 'pctAuBout',
+    afterDatasetsDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || !meta.data) return;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = '600 11px Inter, Segoe UI, system-ui, sans-serif';
+      ctx.fillStyle = COL.text;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      meta.data.forEach((bar, i) => {
+        const c = top[i];
+        if (!c) return;
+        ctx.fillText(CC.util.pct(c.pct, c.pct < 10 ? 1 : 0), bar.x + 6, bar.y);
+      });
+      ctx.restore();
+    }
+  };
   makeChart('chartClients', {
     type: 'bar',
     data: { labels: top.map((c) => c.client), datasets: [{ label: 'CA', data: top.map((c) => c.total), backgroundColor: COL.blue, borderRadius: 4, maxBarThickness: 18 }] },
+    plugins: [pctAuBout],
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 52 } },   // place pour le % au bout des barres
       scales: { x: { grid: { color: COL.grid }, border: { display: false }, ticks: { color: COL.text }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: COL.text } } },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${CC.util.eur0(c.parsed.x)} — ${top[c.dataIndex].count} facture(s)` } } }
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${CC.util.eur0(c.parsed.x)} — ${CC.util.pct(top[c.dataIndex].pct, 1)} du CA — ${top[c.dataIndex].count} facture(s)` } } }
     }
   });
 

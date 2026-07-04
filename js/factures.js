@@ -50,6 +50,7 @@ CC.facturesView = {
       let quick = '';
       if (st === 'attente' || st === 'retard') quick = `<button class="mini-btn go-green" data-act="recue" data-id="${f.id}" title="Marquer comme reçue">Reçue ✓</button> `;
       else if (st === 'prevu') quick = `<button class="mini-btn" data-act="emise" data-id="${f.id}" title="Donner un n° = facture émise">Émise</button> `;
+      else if (st === 'recue') quick = `<button class="mini-btn" data-act="unrecue" data-id="${f.id}" title="Annuler l'encaissement (remettre en attente)">↩ Annuler</button> `;
       const pj = f.fichier ? `<button class="mini-btn pj-btn" data-act="pj" data-id="${f.id}" title="Ouvrir la facture PDF" aria-label="Ouvrir la facture PDF">${ICON_CLIP}</button> ` : '';
       return `<tr class="frow ${st}">
         <td class="fdate" data-label="Encaissé le">${f.dateEncaissement ? CC.util.frDate(f.dateEncaissement) : '<span class="muted">—</span>'}</td>
@@ -188,11 +189,24 @@ CC.facturesView = {
   markRecue(id) {
     const f = CC.state.factures.find((x) => x.id === id);
     if (!f) return;
+    // Mémorise l'état d'avant pour permettre une annulation exacte (clic par erreur).
+    f._avantRecue = { dateEncaissement: f.dateEncaissement || '', annee: f.annee || null, trimestre: f.trimestre || null };
     f.dateEncaissement = CC.util.toISO(new Date());
     f.annee = CC.util.yearOf(f.dateEncaissement);
     f.trimestre = CC.util.trimestreOfDate(f.dateEncaissement);
     CC.markDirty(); CC.refreshYears(); CC.render();
     CC.toast('Facture marquée comme reçue.');
+  },
+
+  // Annule un encaissement (ex. clic "Reçue" par erreur) : remet la facture en attente.
+  undoRecue(id) {
+    const f = CC.state.factures.find((x) => x.id === id);
+    if (!f) return;
+    const prev = f._avantRecue;
+    f.dateEncaissement = prev ? prev.dateEncaissement : '';
+    if (prev) { f.annee = prev.annee; f.trimestre = prev.trimestre; delete f._avantRecue; }
+    CC.markDirty(); CC.refreshYears(); CC.render();
+    CC.toast('Encaissement annulé — facture remise en attente.');
   },
 
   bind() {
@@ -252,6 +266,7 @@ CC.facturesView = {
       if (!btn) return;
       if (btn.dataset.act === 'edit') { const f = CC.state.factures.find((x) => x.id === btn.dataset.id); if (f) CC.facturesView.openModal(f); }
       else if (btn.dataset.act === 'recue') CC.facturesView.markRecue(btn.dataset.id);
+      else if (btn.dataset.act === 'unrecue') CC.facturesView.undoRecue(btn.dataset.id);
       else if (btn.dataset.act === 'pj') { const f = CC.state.factures.find((x) => x.id === btn.dataset.id); if (f) CC.openPj(f.fichier); }
       else if (btn.dataset.act === 'emise') {
         const f = CC.state.factures.find((x) => x.id === btn.dataset.id);
