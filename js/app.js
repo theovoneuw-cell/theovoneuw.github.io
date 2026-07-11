@@ -167,7 +167,7 @@ CC.refreshYears = function () {
 
 CC.state.subTab = 'dashboard';   // sous-onglet actif dans Compta
 
-CC.switchTab = function (name) {
+CC.switchTab = function (name, dir) {
   // Onglets "Compta" exposes via le menu (dashboard/factures/fiscal) -> ouvrir Compta + sous-onglet
   if (name === 'dashboard' || name === 'factures' || name === 'fiscal' || name === 'donnees') {
     CC.switchTab('compta');
@@ -176,6 +176,12 @@ CC.switchTab = function (name) {
   }
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
+  // Animation directionnelle si on arrive par un swipe (dir = 'next' | 'prev').
+  const activePanel = document.getElementById('tab-' + name);
+  if (activePanel) {
+    activePanel.classList.remove('slide-next', 'slide-prev');
+    if (dir) { void activePanel.offsetWidth; activePanel.classList.add(dir === 'next' ? 'slide-next' : 'slide-prev'); }
+  }
   // Barre de navigation mobile : synchro de l'état actif + fermeture de la feuille "Plus".
   const MOBILE_PRIMARY = ['today', 'compta', 'agenda', 'mails'];
   document.querySelectorAll('.mtab[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
@@ -246,6 +252,11 @@ CC.openMoreSheet = function () { const s = document.getElementById('moreSheet');
 CC.closeMoreSheet = function () { const s = document.getElementById('moreSheet'); if (s) s.classList.add('hidden'); };
 
 CC.initMobileNav = function () {
+  // Anti-zoom : en plus du meta viewport (user-scalable=no), on bloque le pinch-zoom
+  // iOS (événements 'gesture*' propres à Safari) et le double-tap zoom.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((ev) => {
+    document.addEventListener(ev, (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+  });
   // Clic sur une icône de la barre ou un item de la feuille -> change d'onglet.
   document.querySelectorAll('.mtab[data-tab], .msheet-item[data-tab]').forEach((b) => {
     b.addEventListener('click', () => CC.switchTab(b.dataset.tab));
@@ -257,31 +268,73 @@ CC.initMobileNav = function () {
   if (sheet) sheet.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target === sheet) CC.closeMoreSheet(); });
 
   // --- Swipe horizontal pour changer d'onglet (téléphone uniquement) ---
+  // Le panneau actif suit légèrement le doigt (retour tactile), puis à la validation
+  // le nouvel onglet entre en glissant depuis le côté du geste.
   const main = document.querySelector('main');
   if (!main) return;
   // Zones à ignorer : elles gèrent leur propre défilement/geste horizontal.
   const EXCLUDE = '.leaflet-container, .table-wrap, .chart-box, .subtabs, .dp, input, textarea, select, .mobile-sheet';
-  let x0 = null, y0 = null, tracking = false;
+  let x0 = null, y0 = null, tracking = false, dragPanel = null, horiz = false;
+
+  function clearDrag(animateBack) {
+    if (!dragPanel) return;
+    const p = dragPanel; dragPanel = null;
+    p.classList.remove('dragging');
+    if (animateBack) {
+      p.style.transition = 'transform .2s ease, opacity .2s ease';
+      p.style.transform = 'translateX(0)'; p.style.opacity = '1';
+      setTimeout(() => { p.style.transition = ''; p.style.transform = ''; p.style.opacity = ''; }, 210);
+    } else {
+      p.style.transition = ''; p.style.transform = ''; p.style.opacity = '';
+    }
+  }
+
   main.addEventListener('touchstart', (e) => {
     if (window.innerWidth > 720 || !e.touches || e.touches.length !== 1) { tracking = false; return; }
     if (e.target.closest(EXCLUDE)) { tracking = false; return; }
-    const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tracking = true;
+    const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tracking = true; horiz = false; dragPanel = null;
   }, { passive: true });
+
+  // touchmove NON passif : une fois le geste reconnu comme horizontal, on bloque le
+  // défilement vertical de la page (preventDefault) pour un slide net, sans à-coups.
+  main.addEventListener('touchmove', (e) => {
+    if (!tracking || x0 == null || !e.touches || !e.touches.length) return;
+    const t = e.touches[0]; const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (!horiz) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;      // direction pas encore décidée
+      // Seuil : franchement horizontal (dx dominant) pour verrouiller ; sinon on laisse scroller.
+      if (Math.abs(dx) <= Math.abs(dy) * 1.2) { tracking = false; return; }   // geste vertical -> scroll normal
+      horiz = true;
+      dragPanel = document.querySelector('.panel.active');
+      if (dragPanel) dragPanel.classList.add('dragging');
+    }
+    // Geste horizontal verrouillé : on empêche le scroll vertical de la page.
+    if (e.cancelable) e.preventDefault();
+    if (!dragPanel) return;
+    const damp = Math.max(-72, Math.min(72, dx * 0.42));     // amorti + borné
+    dragPanel.style.transform = 'translateX(' + damp + 'px)';
+    dragPanel.style.opacity = String(1 - Math.min(0.22, Math.abs(damp) / 320));
+  }, { passive: false });
+
   main.addEventListener('touchend', (e) => {
-    if (!tracking || x0 == null) return;
-    tracking = false;
-    const t = (e.changedTouches && e.changedTouches[0]); if (!t) return;
+    const wasTracking = tracking; tracking = false;
+    if (!wasTracking || x0 == null) { clearDrag(false); return; }
+    const t = (e.changedTouches && e.changedTouches[0]);
+    if (!t) { clearDrag(true); return; }
     const dx = t.clientX - x0, dy = t.clientY - y0;
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;   // pas assez horizontal
+    const commit = Math.abs(dx) >= 70 && Math.abs(dx) > Math.abs(dy) * 1.5;
+    if (!commit) { clearDrag(true); return; }
     // Ordre = onglets du haut visibles (Spotify masqué sur PWA est exclu).
     const order = Array.prototype.slice.call(document.querySelectorAll('.tab[data-tab]'))
       .filter((tb) => !tb.classList.contains('hidden')).map((tb) => tb.dataset.tab);
     const cur = order.findIndex((n) => { const p = document.getElementById('tab-' + n); return p && p.classList.contains('active'); });
-    if (cur < 0) return;
     const next = dx < 0 ? cur + 1 : cur - 1;   // glisser vers la gauche = onglet suivant
-    if (next < 0 || next >= order.length) return;   // pas de bouclage aux extrémités
-    CC.switchTab(order[next]);
+    if (cur < 0 || next < 0 || next >= order.length) { clearDrag(true); return; }   // pas de bouclage
+    clearDrag(false);   // l'ancien panneau va être masqué : on nettoie sans animer
+    CC.switchTab(order[next], dx < 0 ? 'next' : 'prev');
   }, { passive: true });
+
+  main.addEventListener('touchcancel', () => { tracking = false; clearDrag(true); }, { passive: true });
 };
 
 // ---------------------------------------------------------------------------

@@ -88,6 +88,8 @@
 :root[data-theme="dark"] .card-memo { background: linear-gradient(180deg, rgba(246,191,38,.07) 0%, var(--surface) 60%); }
 /* Bouton "danger" : fond blanc codé en dur -> surface du thème. */
 :root[data-theme="dark"] .btn-danger { background: var(--surface); border-color: var(--red-soft); }
+/* Agenda : cases des mois précédent/suivant (codées en dur #f6f5fc) -> teinte sombre discrète. */
+:root[data-theme="dark"] .cal-cell.out { background: rgba(255,255,255,.035); }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
@@ -104,6 +106,7 @@ body {
   line-height: 1.5;
   display: flex; flex-direction: column; height: 100vh; overflow: hidden;
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  touch-action: manipulation;   /* pas de double-tap zoom / délai de 300 ms */
 }
 .num-tab { font-variant-numeric: tabular-nums; }
 
@@ -119,8 +122,8 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 
 /* ===================== TOPBAR ===================== */
 .topbar {
-  display: flex; align-items: center; gap: 30px;
-  padding: 0 26px; height: 64px;
+  display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+  padding: 8px 14px; min-height: 64px;
   background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
   position: relative; z-index: 5;
   box-shadow: 0 6px 22px rgba(27,23,51,.05);
@@ -131,18 +134,21 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 22%, var(--coral) 70%, var(--coral-strong) 100%);
   opacity: .9;
 }
-.brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .brand .logo {
-  width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
   background: linear-gradient(135deg, var(--accent) 0%, var(--coral) 140%);
   color: #fff; font-family: var(--serif); font-size: 19px; font-weight: 700;
   box-shadow: 0 4px 12px rgba(79,70,229,.30);
 }
-.brand h1 { font-family: var(--serif); font-size: 19px; margin: 0; letter-spacing: -.2px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+.brand h1 { font-family: var(--serif); font-size: 17px; margin: 0; letter-spacing: -.2px; color: var(--ink); font-weight: 600; white-space: nowrap; }
 .brand .sub { margin: 0; font-size: 11px; color: var(--coral-strong); letter-spacing: .4px; font-weight: 600; white-space: nowrap; }
 
-.tabs { display: flex; gap: 2px; height: 100%; align-items: center; }
-.tab { background: transparent; border: none; color: var(--muted); padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; display: inline-flex; align-items: center; white-space: nowrap; }
+/* Les onglets prennent l'espace central et PASSENT SUR DEUX LIGNES si la fenêtre est
+   trop étroite (flex-wrap), plutôt que d'être tronqués — le nom (gauche) et les actions
+   (droite) restent toujours en place et visibles. */
+.tabs { display: flex; flex: 1 1 auto; gap: 2px 3px; align-items: center; min-width: 0; flex-wrap: wrap; }
+.tab { background: transparent; border: none; color: var(--muted); padding: 7px 10px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; display: inline-flex; align-items: center; white-space: nowrap; }
 .tab:hover { color: var(--ink); background: var(--paper); }
 .tab.active { color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 /* Pastille "mails non lus" (boîte principale uniquement) — pensée pour attirer
@@ -216,8 +222,10 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .mobile-sheet-panel { animation: none; } }
 
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.year-select { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.topbar-right .btn { padding: 7px 11px; }
+.year-select select { padding: 6px 8px; }
+.year-select { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
 
 /* ===================== BUTTONS / INPUTS ===================== */
 .btn { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 15px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .12s, border-color .12s; }
@@ -246,7 +254,15 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .panel { display: none; max-width: 1240px; margin: 0 auto; }
 .panel.active { display: block; animation: panelIn .26s ease both; }
 @keyframes panelIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .panel.active { animation: none; } }
+/* Slide directionnel au swipe (téléphone) : le nouvel onglet entre par le côté du
+   geste. Déclaré APRÈS .panel.active pour gagner la propriété `animation`. */
+.panel.active.slide-next { animation: panelSlideNext .3s cubic-bezier(.32,.72,0,1) both; }
+.panel.active.slide-prev { animation: panelSlidePrev .3s cubic-bezier(.32,.72,0,1) both; }
+@keyframes panelSlideNext { from { opacity: .25; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes panelSlidePrev { from { opacity: .25; transform: translateX(-40px); } to { opacity: 1; transform: translateX(0); } }
+/* Panneau suivi au doigt pendant le glissement : pas de transition (temps réel). */
+.panel.dragging { transition: none; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .panel.active, .panel.active.slide-next, .panel.active.slide-prev { animation: none; } }
 
 /* ===================== KPI ===================== */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); gap: 13px; margin-bottom: 20px; }
@@ -967,7 +983,9 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   }
   .mobile-sheet { display: block; position: fixed; inset: 0; z-index: 60; }
   .mobile-sheet.hidden { display: none; }
-  .topbar-right { margin-left: auto; gap: 8px; }
+  /* En-tête mobile : les contrôles passent sur leur propre ligne pleine largeur et
+     s'enroulent à droite → le bouton « Enregistrer » n'est jamais rogné. */
+  .topbar-right { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   .year-select { font-size: 11px; gap: 4px; }
   .year-select select { padding: 6px 8px; min-width: 0; }
   .topbar-right .btn, #btnSave { padding: 7px 11px; font-size: 12px; }
