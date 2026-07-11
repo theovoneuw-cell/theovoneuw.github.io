@@ -112,10 +112,10 @@ async function renderAgenda(now) {
 
   // Erreur -> on retombe sur la dernière synchro en cache (lecture seule).
   const cached = loadTodayCache(start);
-  if (cached) { paintAgenda(box, cached.events, cached.savedAt); return; }
+  if (cached) { paintAgenda(box, cached.events, cached.savedAt, res.error); return; }
   // À défaut, on réutilise le cache mensuel de la vue Agenda, filtré sur aujourd'hui.
   const monthly = loadMonthlyForToday(now);
-  if (monthly) { paintAgenda(box, monthly.events, monthly.savedAt); return; }
+  if (monthly) { paintAgenda(box, monthly.events, monthly.savedAt, res.error); return; }
 
   // Pas de cache : message contextuel.
   if (/connect/i.test(res.error)) {
@@ -127,27 +127,35 @@ async function renderAgenda(now) {
   }
 }
 
-function paintAgenda(box, events, savedAt) {
+function paintAgenda(box, events, savedAt, errStr) {
   let html = '';
   if (savedAt) {
-    html += `<div class="ck-offline" title="Dernière synchronisation : ${esc(tdFrDateTime(savedAt))}">Hors connexion · synchro du ${esc(tdShortDateTime(savedAt))}</div>`;
+    const kind = CC.util.netKind(errStr);
+    if (kind === 'auth') {
+      // En ligne mais session Google expirée (iPhone) : reconnexion en un tap.
+      html += `<div class="ck-offline">Session Google expirée — <button class="lnk" id="ckReconnect">Reconnecter</button></div>`;
+    } else {
+      html += `<div class="ck-offline" title="Dernière synchronisation : ${esc(tdFrDateTime(savedAt))}">${kind === 'offline' ? 'Hors connexion' : 'Synchro impossible'} · synchro du ${esc(tdShortDateTime(savedAt))}</div>`;
+    }
   }
   if (!events.length) {
     box.innerHTML = html + '<div class="ck-empty">Aucun événement aujourd\'hui.</div>';
-    return;
+  } else {
+    html += events.map((e) => {
+      const hex = colorOf(e.couleur);
+      const h = e.journee ? 'journée' : heure(e.debut);
+      return `<div class="ck-row ck-row-ev" style="--evc:${hex}">
+        <div class="ck-time">${h}</div>
+        <div class="ck-main">
+          <div class="ck-t">${esc(e.titre)}</div>
+          ${e.lieu ? `<div class="ck-s">${esc(e.lieu)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    box.innerHTML = html;
   }
-  html += events.map((e) => {
-    const hex = colorOf(e.couleur);
-    const h = e.journee ? 'journée' : heure(e.debut);
-    return `<div class="ck-row ck-row-ev" style="--evc:${hex}">
-      <div class="ck-time">${h}</div>
-      <div class="ck-main">
-        <div class="ck-t">${esc(e.titre)}</div>
-        ${e.lieu ? `<div class="ck-s">${esc(e.lieu)}</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-  box.innerHTML = html;
+  const rb = box.querySelector('#ckReconnect');
+  if (rb) rb.addEventListener('click', () => CC.reconnectGoogle(rb));
 }
 
 // Palette officielle Google Agenda (mêmes valeurs que la vue Agenda).

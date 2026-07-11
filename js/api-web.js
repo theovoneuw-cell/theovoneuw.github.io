@@ -172,14 +172,17 @@ window.CC = window.CC || {};
   async function geminiGenerate(opts) {
     const apiKey = lsGet('geminiKey');
     if (!apiKey) return { error: 'Clé Gemini manquante. Renseigne-la dans Paramètres → Connexions & IA.' };
-    const contents = Array.isArray(opts.messages) && opts.messages.length
-      ? opts.messages.map((m) => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text || '') }] }))
-      : [{ role: 'user', parts: [{ text: opts.prompt || '' }] }];
+    const contents = Array.isArray(opts.contents) && opts.contents.length
+      ? opts.contents
+      : (Array.isArray(opts.messages) && opts.messages.length
+        ? opts.messages.map((m) => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text || '') }] }))
+        : [{ role: 'user', parts: [{ text: opts.prompt || '' }] }]);
     const body = {
       contents: contents,
       generationConfig: { temperature: opts.temperature != null ? opts.temperature : 0.7 }
     };
     if (opts.system) body.systemInstruction = { parts: [{ text: opts.system }] };
+    if (Array.isArray(opts.tools) && opts.tools.length) body.tools = [{ functionDeclarations: opts.tools }];
     const wanted = (opts.model || '').trim();
     const models = [wanted].concat(GEMINI_FALLBACKS).filter((m, i, a) => m && a.indexOf(m) === i);
     let quotaErr = '', lastErr = 'Aucun modèle Gemini disponible.';
@@ -194,8 +197,10 @@ window.CC = window.CC || {};
       const apiMsg = data && data.error && data.error.message;
       if (res.ok) {
         const cand = data && data.candidates && data.candidates[0];
-        const parts = cand && cand.content && cand.content.parts;
-        const text = parts ? parts.map((p) => p.text || '').join('').trim() : '';
+        const parts = (cand && cand.content && cand.content.parts) || [];
+        const fcs = parts.filter((p) => p.functionCall).map((p) => p.functionCall);
+        if (fcs.length) return { functionCalls: fcs, modelParts: parts, model: model };
+        const text = parts.map((p) => p.text || '').join('').trim();
         if (text) return { text: text, model: model };
         const block = data && data.promptFeedback && data.promptFeedback.blockReason;
         return { error: block ? ('Contenu bloqué par Gemini (' + block + ').') : 'Réponse vide de Gemini.' };
@@ -447,6 +452,12 @@ window.CC = window.CC || {};
           sujet: header(m.payload, 'Subject') || '(sans objet)', date: header(m.payload, 'Date'),
           html: acc.html, text: acc.text, attachments: acc.atts
         } };
+      },
+      async markRead(id) {
+        if (!id) return { error: 'Message manquant.' };
+        const r = await gsend('POST', GMAIL + '/messages/' + id + '/modify', { removeLabelIds: ['UNREAD'] });
+        if (r.__error) return { error: r.__error };
+        return { ok: true };
       },
       async attachment(opts) {
         const o = opts || {};

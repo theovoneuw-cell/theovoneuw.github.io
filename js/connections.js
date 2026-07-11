@@ -15,6 +15,11 @@ CC.connections = {
     if (goo) { goo.textContent = st.googleConnected ? 'connecté ✓' : 'déconnecté'; goo.classList.toggle('ok', !!st.googleConnected); }
     const toll = document.getElementById('connTollState');
     if (toll) { toll.textContent = st.tollguruKey ? 'configuré ✓' : 'non configuré'; toll.classList.toggle('ok', !!st.tollguruKey); }
+    const spo = document.getElementById('connSpotifyState');
+    if (spo) {
+      const txt = st.spotifyConnected ? 'connecté ✓' : (st.spotifyClientId ? 'identifiant enregistré' : 'non configuré');
+      spo.textContent = txt; spo.classList.toggle('ok', !!st.spotifyConnected);
+    }
     CC._tollReady = !!st.tollguruKey;
     CC._geminiReady = !!st.geminiKey;
     CC._googleConnected = !!st.googleConnected;
@@ -128,6 +133,28 @@ CC.connections = {
       $('setTollKey').value = '';
       CC.toast('Clé TollGuru enregistrée.', 'ok');
       CC.connections.refreshStatus();
+    });
+
+    // Spotify (télécommande — PC uniquement)
+    $('lnkSpotify') && $('lnkSpotify').addEventListener('click', (e) => { e.preventDefault(); window.api.openUrl('https://developer.spotify.com/dashboard'); });
+    $('btnSaveSpotify') && $('btnSaveSpotify').addEventListener('click', async () => {
+      const v = $('setSpotifyClientId').value.trim();
+      if (!v) { CC.toast('Saisis ton Client ID Spotify.', 'err'); return; }
+      const r = await window.api.secrets.set('spotifyClientId', v);
+      if (r.error) { CC.toast(r.error, 'err'); return; }
+      $('setSpotifyClientId').value = '';
+      CC.toast('Client ID Spotify enregistré.', 'ok');
+      CC.connections.refreshStatus();
+    });
+    $('btnConnectSpotify') && $('btnConnectSpotify').addEventListener('click', async () => {
+      const v = $('setSpotifyClientId').value.trim();
+      if (v) { await window.api.secrets.set('spotifyClientId', v); $('setSpotifyClientId').value = ''; }
+      const st = await window.api.secrets.status();
+      if (!st.spotifyClientId) { CC.toast('Renseigne d\'abord ton Client ID Spotify.', 'err'); return; }
+      if (CC.spotify) await CC.spotify.connect();
+    });
+    $('btnDisconnectSpotify') && $('btnDisconnectSpotify').addEventListener('click', async () => {
+      if (CC.spotify) await CC.spotify.disconnect();
     });
 
     // Frais kilométriques : CV (pré-remplit le tarif) + tarif au km

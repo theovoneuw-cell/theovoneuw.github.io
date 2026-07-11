@@ -59,6 +59,8 @@ CC.agenda = {
     if (body && !this._bound) {
       body.addEventListener('click', (e) => {
         if (e.target.closest('#agendaRetry')) { CC.agenda.render(); return; }
+        const rec = e.target.closest('#agendaReconnect');
+        if (rec) { CC.reconnectGoogle(rec); return; }
         const ev = e.target.closest('.cal-ev[data-ev-id]');
         if (ev) { CC.agenda._openEvent(ev.dataset.evId); return; }
         const cell = e.target.closest('.cal-cell.has');
@@ -127,7 +129,7 @@ CC.agenda = {
 
     // Erreur -> on tente la dernière synchro en cache (lecture seule)
     const cached = this._loadCache(monthKey);
-    if (cached) { this._paint(m, gridStart, cached.events, cached.savedAt); return; }
+    if (cached) { this._paint(m, gridStart, cached.events, cached.savedAt, res.error); return; }
 
     // Pas de cache -> messages habituels
     if (/connect/i.test(res.error)) {
@@ -140,7 +142,7 @@ CC.agenda = {
   },
 
   // Construit et affiche la grille (en direct ou depuis le cache)
-  _paint(m, gridStart, events, savedAt) {
+  _paint(m, gridStart, events, savedAt, errStr) {
     const body = document.getElementById('agendaBody');
     if (!body) return;
     this._offline = !!savedAt;
@@ -176,11 +178,21 @@ CC.agenda = {
     const todayKey = keyOf(new Date());
     let html = '';
     if (savedAt) {
-      html += `<div class="agenda-offline">
-        <span class="ao-ic">⚠</span>
-        <div>Hors connexion — affichage de la dernière synchronisation du <b>${esc(frDateTime(savedAt))}</b>. Actualisation impossible.</div>
-        <button class="lnk" id="agendaRetry">Réessayer</button>
-      </div>`;
+      const kind = CC.util.netKind(errStr);
+      if (kind === 'auth') {
+        // En ligne, mais la session Google a expiré (fréquent sur iPhone) : on propose la reconnexion.
+        html += `<div class="agenda-offline">
+          <span class="ao-ic">⚠</span>
+          <div>Session Google expirée — reconnecte-toi pour actualiser l'agenda. Affichage de la synchro du <b>${esc(frDateTime(savedAt))}</b>.</div>
+          <button class="btn btn-primary" id="agendaReconnect">Reconnecter Google</button>
+        </div>`;
+      } else {
+        html += `<div class="agenda-offline">
+          <span class="ao-ic">⚠</span>
+          <div>${kind === 'offline' ? 'Hors connexion' : 'Synchronisation impossible'} — affichage de la dernière synchronisation du <b>${esc(frDateTime(savedAt))}</b>.</div>
+          <button class="lnk" id="agendaRetry">Réessayer</button>
+        </div>`;
+      }
     }
     html += '<div class="cal">';
     html += '<div class="cal-head">' + AG_JOURS.map((j) => `<div class="cal-hd">${j}</div>`).join('') + '</div>';

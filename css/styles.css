@@ -102,7 +102,7 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 .brand .sub { margin: 0; font-size: 11px; color: var(--coral-strong); letter-spacing: .4px; font-weight: 600; }
 
 .tabs { display: flex; gap: 2px; height: 100%; align-items: center; }
-.tab { background: transparent; border: none; color: var(--muted); padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; }
+.tab { background: transparent; border: none; color: var(--muted); padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; display: inline-flex; align-items: center; white-space: nowrap; }
 .tab:hover { color: var(--ink); background: var(--paper); }
 .tab.active { color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 /* Pastille "mails non lus" (boîte principale uniquement) — pensée pour attirer
@@ -578,6 +578,18 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .ai-typing { color: var(--soft); letter-spacing: 2px; }
 .ai-input-row { display: flex; gap: 10px; padding: 12px; border-top: 1px solid var(--border); align-items: flex-end; }
 .ai-input { flex: 1; resize: none; max-height: 160px; }
+.ai-attach-btn { flex: 0 0 auto; padding: 0; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
+.ai-attach-btn:hover { color: var(--accent); }
+/* Barre des pièces jointes en attente d'envoi */
+.ai-attach-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px 0; }
+.ai-attach-bar.hidden { display: none; }
+.ai-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; padding: 5px 8px 5px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--text); }
+.ai-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-chip-del { border: none; background: transparent; cursor: pointer; color: var(--soft); font-size: 12px; line-height: 1; padding: 2px 3px; border-radius: 5px; }
+.ai-chip-del:hover { color: var(--red); background: var(--red-soft); }
+.ai-chip-static { padding: 4px 10px; }
+.ai-msg-atts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.ai-me .ai-chip-static { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.35); color: #fff; }
 
 /* ===================== MAILS (Gmail, lecture) ===================== */
 .mail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -936,21 +948,28 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .mail-reader { max-height: none; padding: 16px 14px; }
   .mail-msg-head h2 { font-size: 17px; }
 
-  /* ---- Factures : tableau -> cartes empilées (lisibles au doigt) ---- */
+  /* ---- Factures : tableau -> cartes compactes (lisibles au doigt) ----
+     Client = titre de la carte, montant mis en avant, méta resserrées. */
   #facturesTable.table { min-width: 0; }
   #facturesTable, #facturesTable tbody { display: block; width: 100%; }
   #facturesTable thead { display: none; }
-  #facturesTable tr.frow { display: block; border: 1px solid var(--border-strong); border-left: 3px solid var(--soft); border-radius: 12px; padding: 9px 13px; margin-bottom: 10px; background: var(--surface); box-shadow: var(--shadow-soft); }
+  #facturesTable tr.frow { display: flex; flex-direction: column; border: 1px solid var(--border-strong); border-left: 3px solid var(--soft); border-radius: 12px; padding: 10px 13px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow-soft); }
   #facturesTable tr.frow.recue { border-left-color: var(--green); }
   #facturesTable tr.frow.attente { border-left-color: var(--amber); }
   #facturesTable tr.frow.retard { border-left-color: var(--red); }
   #facturesTable tr.frow.prevu { border-left-color: var(--blue); }
-  #facturesTable td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; border: none; text-align: right; }
-  #facturesTable td::before { content: attr(data-label); font-weight: 600; color: var(--muted); text-align: left; font-size: 12px; flex-shrink: 0; }
-  #facturesTable td.client { text-align: left; flex-wrap: wrap; font-size: 14px; }
-  #facturesTable td.client::before { width: 100%; }
-  #facturesTable td.montant { font-size: 16px; }
-  #facturesTable td.col-actions { justify-content: flex-start; flex-wrap: wrap; gap: 6px; padding-top: 9px; margin-top: 4px; border-top: 1px solid var(--border); }
+  #facturesTable td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 2px 0; border: none; text-align: right; }
+  #facturesTable td::before { content: attr(data-label); font-weight: 600; color: var(--muted); text-align: left; font-size: 11.5px; flex-shrink: 0; }
+  /* Client : titre de la carte (pas de label, pleine largeur) */
+  #facturesTable td.client { order: -3; text-align: left; flex-wrap: wrap; font-size: 15px; font-weight: 700; padding-bottom: 3px; }
+  #facturesTable td.client::before { display: none; }
+  /* Montant : juste sous le client, en avant */
+  #facturesTable td.montant { order: -2; font-size: 17px; padding-bottom: 4px; margin-bottom: 3px; border-bottom: 1px solid var(--border); }
+  /* Statut : juste après le montant */
+  #facturesTable td[data-label="Statut"] { order: -1; }
+  /* Méta secondaires (dates, période, N°) : discrètes */
+  #facturesTable td.fdate, #facturesTable td.fmeta { font-size: 12.5px; }
+  #facturesTable td.col-actions { justify-content: flex-start; flex-wrap: wrap; gap: 6px; padding-top: 9px; margin-top: 5px; border-top: 1px solid var(--border); }
   #facturesTable td.col-actions::before { display: none; }
 
   /* ---- Fiscal : déclarations URSSAF -> cartes (le tableau débordait) ---- */
@@ -962,4 +981,172 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .fiscal-table td::before { content: attr(data-label); font-weight: 600; color: var(--muted); text-align: left; font-size: 12px; }
   .fiscal-table td.q { font-size: 15px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 2px; }
   .fiscal-table td.q::before { display: none; }
+}
+
+/* ===================== SPOTIFY (télécommande, PC uniquement) =====================
+   Skin sombre "façon Spotify", auto-contenu et scopé à l'onglet (n'affecte pas
+   le reste de l'app). Accent vert Spotify. Uniquement des SVG (aucun emoji). */
+.sp-app {
+  --sp-green: #1db954; --sp-green-hi: #1ed760;
+  --sp-bg: #121212; --sp-elev: #181818; --sp-elev-2: #282828;
+  --sp-line: #2a2a2a; --sp-fg: #ffffff; --sp-dim: #b3b3b3;
+  --sp-card-w: 158px;
+  background: var(--sp-bg); border-radius: 16px; padding: 16px 18px 24px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.28); color: var(--sp-fg);
+}
+
+/* --- Barre "en cours de lecture" : gauche | centre | droite --- */
+.sp-nowbar { display: flex; gap: 20px; align-items: center;
+  background: linear-gradient(180deg, #202020 0%, var(--sp-elev) 100%);
+  border: 1px solid var(--sp-line); border-radius: 14px; padding: 12px 16px; }
+.sp-now-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.sp-now-center { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 0 1 460px; }
+.sp-now-right { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+.sp-art-wrap { width: 66px; height: 66px; flex-shrink: 0; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,.5); background: var(--sp-elev-2); }
+.sp-art { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-art-empty { background: linear-gradient(135deg, #3a3a3a, #232323); }
+.sp-meta { min-width: 0; }
+.sp-title { font-size: 15px; font-weight: 700; color: var(--sp-fg); letter-spacing: -.2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-artist { font-size: 12.5px; color: var(--sp-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* --- Boutons de contrôle --- */
+.sp-btns { display: flex; align-items: center; gap: 6px; }
+.sp-ctl { display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--sp-fg); cursor: pointer;
+  width: 36px; height: 36px; border-radius: 50%; padding: 0; transition: color .12s, transform .12s, background .12s; }
+.sp-ctl:hover { color: var(--sp-green-hi); }
+.sp-ctl-play { background: var(--sp-green); color: #000; width: 44px; height: 44px; }
+.sp-ctl-play:hover { background: var(--sp-green-hi); color: #000; transform: scale(1.06); }
+.sp-ctl-sm { width: 32px; height: 32px; color: var(--sp-dim); }
+.sp-ctl-sm:hover { color: var(--sp-fg); background: var(--sp-elev-2); }
+.sp-toggle.active { color: var(--sp-green); position: relative; }
+.sp-toggle.active::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--sp-green); }
+.sp-like { color: var(--sp-dim); }
+.sp-like svg { fill: none; stroke: currentColor; stroke-width: 2; }
+.sp-like:hover { color: var(--sp-fg); background: transparent; }
+.sp-like.liked { color: var(--sp-green); }
+.sp-like.liked svg { fill: currentColor; stroke: currentColor; }
+
+/* --- Barre de progression (cliquable) --- */
+.sp-progress { display: flex; align-items: center; gap: 10px; width: 100%; }
+.sp-bar { position: relative; flex: 1; height: 5px; border-radius: 3px; background: #4d4d4d; cursor: pointer; }
+.sp-bar:hover { height: 6px; }
+.sp-bar > i { display: block; height: 100%; width: 0%; background: var(--sp-green); border-radius: 3px; transition: width .25s linear; }
+.sp-bar:hover > i { background: var(--sp-green-hi); }
+.sp-time { font-size: 11px; color: var(--sp-dim); font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 34px; }
+.sp-now-center .sp-time:first-child { text-align: right; }
+
+/* --- Volume / appareils --- */
+.sp-vol { display: inline-flex; align-items: center; gap: 6px; color: var(--sp-dim); }
+.sp-vol input[type=range] { width: 84px; padding: 0; accent-color: var(--sp-green); background: transparent; border: none; }
+.sp-device-wrap { display: inline-flex; align-items: center; gap: 4px; }
+.sp-device { max-width: 150px; font-size: 12px; color: var(--sp-fg);
+  background: var(--sp-elev-2); border: 1px solid #3e3e3e; border-radius: 8px; padding: 6px 8px; }
+.sp-device:focus { outline: none; border-color: var(--sp-green); box-shadow: none; }
+
+/* --- Avertissement "aucun appareil" --- */
+.sp-hint { margin-top: 12px; padding: 11px 15px; border-radius: 10px; font-size: 13px; line-height: 1.5;
+  background: rgba(29,185,84,.10); border: 1px solid rgba(29,185,84,.35); color: #cfeeda; }
+.sp-hint b { color: var(--sp-fg); }
+
+/* --- File d'attente (repliable) --- */
+.sp-queue { margin-top: 14px; background: var(--sp-elev); border: 1px solid var(--sp-line); border-radius: 12px; padding: 12px 14px; }
+.sp-queue-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sp-queue-head h3 { color: var(--sp-fg); font-size: 15px; font-weight: 700; margin: 0; }
+
+/* --- Corps : bibliothèque (colonne) + contenu --- */
+.sp-body { display: grid; grid-template-columns: 260px 1fr; gap: 18px; margin-top: 16px; align-items: start; }
+.sp-sidebar { background: var(--sp-elev); border: 1px solid var(--sp-line); border-radius: 12px; padding: 12px; max-height: 620px; display: flex; flex-direction: column; }
+.sp-side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 4px 10px; }
+.sp-side-head h3 { color: var(--sp-fg); font-size: 14px; font-weight: 700; margin: 0; }
+.sp-density { font-size: 11px; color: var(--sp-dim); background: var(--sp-elev-2); border: 1px solid #3e3e3e; border-radius: 7px; padding: 4px 6px; }
+.sp-density:focus { outline: none; border-color: var(--sp-green); box-shadow: none; }
+.sp-lib { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #4d4d4d transparent; display: flex; flex-direction: column; gap: 2px; }
+.sp-lib::-webkit-scrollbar { width: 8px; }
+.sp-lib::-webkit-scrollbar-thumb { background: #4d4d4d; border-radius: 4px; }
+.sp-lib-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: none; border-radius: 8px; padding: 6px 8px; font-family: inherit; transition: background .15s; }
+.sp-lib-item:hover { background: var(--sp-elev-2); }
+.sp-lib-art { width: 42px; height: 42px; border-radius: 5px; overflow: hidden; flex-shrink: 0; background: #333; }
+.sp-lib-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-lib-meta { display: flex; flex-direction: column; min-width: 0; }
+.sp-lib-title { color: var(--sp-fg); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-lib-sub { color: var(--sp-dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-main { min-width: 0; }
+
+/* --- Recherche --- */
+.sp-search-wrap { position: relative; }
+.sp-search-ic { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #9a9a9a; pointer-events: none; }
+.sp-search { width: 100%; background: var(--sp-elev-2); border: 1px solid transparent; border-radius: 24px;
+  padding: 11px 18px 11px 44px; color: var(--sp-fg); font-size: 14px; font-family: inherit; }
+.sp-search::placeholder { color: #9a9a9a; }
+.sp-search:focus { outline: none; border-color: #5a5a5a; box-shadow: none; background: #303030; }
+.sp-search::-webkit-search-cancel-button { filter: invert(.7); }
+
+/* --- Rails de découverte + grilles de cartes --- */
+.sp-rail { margin-top: 24px; }
+.sp-rail:first-child { margin-top: 20px; }
+.sp-rail > h3 { color: var(--sp-fg); font-size: 16px; font-weight: 700; letter-spacing: -.2px; margin: 0 0 12px; }
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--sp-card-w), 1fr)); gap: 16px; }
+#spResults.sp-grid { margin-top: 18px; }
+.sp-row { display: flex; gap: 16px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 12px;
+  scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: #4d4d4d transparent; }
+.sp-row .sp-card { flex: 0 0 var(--sp-card-w); width: var(--sp-card-w); scroll-snap-align: start; }
+.sp-row::-webkit-scrollbar { height: 8px; }
+.sp-row::-webkit-scrollbar-thumb { background: #4d4d4d; border-radius: 4px; }
+.sp-row::-webkit-scrollbar-thumb:hover { background: #666; }
+.sp-row::-webkit-scrollbar-track { background: transparent; }
+.sp-card { position: relative; display: flex; flex-direction: column; gap: 10px; text-align: left;
+  background: var(--sp-elev); border: none; border-radius: 10px; padding: 14px; cursor: pointer;
+  font-family: inherit; transition: background .2s; }
+.sp-card:hover { background: var(--sp-elev-2); }
+.sp-card-art { position: relative; width: 100%; aspect-ratio: 1; border-radius: 7px; overflow: hidden;
+  display: block; background: #333; box-shadow: 0 8px 18px rgba(0,0,0,.4); }
+.sp-card-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-card-play { position: absolute; right: 8px; bottom: 8px; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--sp-green); color: #000; display: inline-flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; box-shadow: 0 8px 16px rgba(0,0,0,.5); }
+.sp-card:hover .sp-card-play { opacity: 1; transform: none; }
+.sp-card-title { color: var(--sp-fg); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-card-sub { color: var(--sp-dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-empty { color: var(--sp-dim); font-size: 13px; padding: 8px 2px; }
+
+/* --- Vue playlist détaillée --- */
+.sp-back { display: inline-flex; align-items: center; gap: 5px; background: transparent; border: none;
+  color: var(--sp-dim); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; padding: 4px 2px; }
+.sp-back:hover { color: var(--sp-fg); }
+.sp-detail-hero { display: flex; align-items: flex-end; gap: 18px; margin: 12px 0 18px; }
+.sp-detail-art { width: 140px; height: 140px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: #333; box-shadow: 0 12px 28px rgba(0,0,0,.5); }
+.sp-detail-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-detail-kind { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--sp-dim); font-weight: 700; }
+.sp-detail-title { font-size: 28px; font-weight: 800; color: var(--sp-fg); letter-spacing: -.5px; margin: 4px 0; line-height: 1.1; }
+.sp-detail-sub { font-size: 13px; color: var(--sp-dim); }
+.sp-detail-play { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; cursor: pointer;
+  background: var(--sp-green); color: #000; border: none; border-radius: 22px; padding: 9px 18px; font-family: inherit; font-size: 14px; font-weight: 700; }
+.sp-detail-play:hover { background: var(--sp-green-hi); transform: scale(1.03); }
+
+/* --- Listes de titres (détail + file d'attente) --- */
+.sp-tracklist { display: flex; flex-direction: column; }
+.sp-trk { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: none; border-radius: 6px; padding: 8px 12px; font-family: inherit; transition: background .12s; }
+.sp-trk:hover { background: var(--sp-elev-2); }
+.sp-trk-static { cursor: default; }
+.sp-trk-static:hover { background: transparent; }
+.sp-trk-n { width: 22px; text-align: right; color: var(--sp-dim); font-size: 13px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.sp-trk-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sp-trk-title { color: var(--sp-fg); font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-trk-artist { color: var(--sp-dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-trk-dur { color: var(--sp-dim); font-size: 12px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+@media (max-width: 900px) {
+  .sp-body { grid-template-columns: 1fr; }
+  .sp-sidebar { max-height: 260px; }
+}
+@media (max-width: 760px) {
+  .sp-nowbar { flex-wrap: wrap; }
+  .sp-now-left, .sp-now-right { flex: 1 1 100%; justify-content: center; }
+  .sp-now-center { flex: 1 1 100%; order: -1; }
+  .sp-device { max-width: 130px; }
 }

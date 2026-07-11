@@ -68,7 +68,14 @@ CC.mailbox = {
 
     const list = document.getElementById('mailList');
     if (list) list.addEventListener('click', (e) => {
-      if (e.target.closest('#mailConnect')) { CC.switchTab('settings'); return; }
+      const mc = e.target.closest('#mailConnect');
+      if (mc) {
+        // Session Google expirée (déjà connecté) -> reconnexion en un tap ;
+        // sinon (pas configuré) -> Paramètres pour saisir l'identifiant.
+        if (CC.gauth && CC.gauth.isConnected && CC.gauth.isConnected()) CC.reconnectGoogle(mc);
+        else CC.switchTab('settings');
+        return;
+      }
       const del = e.target.closest('.mitem-del');
       if (del) { e.stopPropagation(); const it = del.closest('.mitem'); if (it) CC.mailbox._del(it.dataset.id, it.dataset.draft || ''); return; }
       const it = e.target.closest('.mitem[data-id]');
@@ -175,6 +182,18 @@ CC.mailbox = {
     document.querySelectorAll('.mitem').forEach((x) => x.classList.remove('sel'));
     if (el) { el.classList.add('sel'); el.classList.remove('unread'); }
     reader.innerHTML = '<div class="mail-empty">Ouverture…</div>';
+
+    // Marque le message comme lu côté Gmail (retire UNREAD) puis met à jour le
+    // compteur de l'onglet. Best-effort : n'empêche pas la lecture si ça échoue.
+    const item = (this._list || []).find((m) => m.id === id);
+    if (item && item.nonLu) {
+      item.nonLu = false;
+      if (window.api.gmail.markRead) {
+        window.api.gmail.markRead(id)
+          .then(() => { if (CC.updateMailBadge) CC.updateMailBadge(); })
+          .catch(() => {});
+      }
+    }
 
     let res;
     try { res = await window.api.gmail.get(id); }

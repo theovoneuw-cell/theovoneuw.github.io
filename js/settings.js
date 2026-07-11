@@ -21,6 +21,16 @@ CC.util = {
     return n.toFixed(dec).replace('.', ',') + ' %';
   },
   num(n) { return new Intl.NumberFormat('fr-FR').format(n || 0); },
+  // Diagnostic connexion : distingue une VRAIE coupure réseau d'une SESSION Google
+  // expirée. Sur iPhone, le jeton Google (~1 h) ne se renouvelle pas toujours en
+  // silence : Gmail/Agenda échouent alors que le réseau (et Gemini) fonctionnent.
+  netKind(err) {
+    const s = String(err || '');
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline';
+    if (/connexion internet|injoignable|réseau|network|failed to fetch|load failed/i.test(s)) return 'offline';
+    if (/connect|autoris|reconnect|expir|insuffisante|401|403/i.test(s)) return 'auth';
+    return 'other';
+  },
   parseDate(s) {
     if (!s) return null;
     const d = new Date(s + 'T00:00:00');

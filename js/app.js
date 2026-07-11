@@ -176,6 +176,7 @@ CC.switchTab = function (name) {
   if (name === 'agenda' && CC.agenda) CC.agenda.render();
   if (name === 'mails' && CC.mailbox) CC.mailbox.render();
   if (name === 'redaction' && CC.ai) CC.ai.render();
+  if (name === 'spotify' && CC.spotify) CC.spotify.render();
   if (name === 'trajets' && CC.trajets) CC.trajets.render();
   if (name === 'settings' && CC.connections) CC.connections.render();
 };
@@ -263,6 +264,7 @@ async function init() {
   CC.connections.bind();
   CC.agenda.bind();
   if (CC.mailbox) CC.mailbox.bind();
+  if (CC.spotify) CC.spotify.bind();
   if (CC.trajets) CC.trajets.bind();
   if (CC.notes) CC.notes.bind();
   if (CC.privacy) CC.privacy.bind();
@@ -369,6 +371,34 @@ CC.showOfflineBanner = function (mirrorUpdatedAt) {
   CC._ddTimer = setInterval(() => CC.tryReconnectDD(false), 5000);
 };
 
+// ---------------------------------------------------------------------------
+// Reconnexion à Google quand la session (~1 h) a expiré. Sur iPhone, le jeton
+// web ne se renouvelle pas toujours en silence : Gmail/Agenda tombent alors que
+// le réseau (et Gemini) marchent. Ce bouton relance le consentement (À APPELER
+// DANS un geste de clic : Safari ouvre le popup de façon synchrone), puis
+// rafraîchit les vues dépendantes de Google.
+// ---------------------------------------------------------------------------
+CC.reconnectGoogle = function (btn) {
+  let orig = '';
+  if (btn) { orig = btn.textContent; btn.disabled = true; btn.textContent = 'Connexion…'; }
+  let p;
+  try { p = window.api.gcal.connect(); }        // appel SYNCHRONE (indispensable Safari/iPhone)
+  catch (e) { p = Promise.reject(e); }
+  Promise.resolve(p)
+    .then((r) => {
+      if (r && r.error) CC.toast('Reconnexion Google impossible : ' + r.error, 'err');
+      else CC.toast('Google reconnecté ✓', 'ok');
+    })
+    .catch(() => CC.toast('Reconnexion Google impossible.', 'err'))
+    .finally(() => {
+      if (btn) { btn.disabled = false; btn.textContent = orig; }
+      try { if (CC.agenda && CC.agenda.render) CC.agenda.render(); } catch (_) {}
+      try { if (CC.renderToday) CC.renderToday(); } catch (_) {}
+      try { if (CC.mailbox && CC.mailbox.render) CC.mailbox.render(); } catch (_) {}
+      try { if (CC.updateMailBadge) CC.updateMailBadge(); } catch (_) {}
+    });
+};
+
 CC.tryReconnectDD = async function (manual) {
   if (!CC.state.primaryPath) return;
   let r;
@@ -400,7 +430,7 @@ CC.tryReconnectDD = async function (manual) {
 // Empeche toute action de modification quand on est en lecture seule (hors DD).
 CC.installReadOnlyGuard = function () {
   const allowed = (t) =>
-    t.closest('.tab, .subtab, #ddBanner, #tab-mails, #mailModal, #tab-redaction, #tab-agenda, #tab-settings, .leaflet-container, .ac-list') ||
+    t.closest('.tab, .subtab, #ddBanner, #tab-mails, #mailModal, #tab-redaction, #tab-spotify, #tab-agenda, #tab-settings, .leaflet-container, .ac-list') ||
     t.closest('#yearSelect, #btnExportCsv, #btnExportPdf, #bilanExport, #bilanYear, #tj_calc, #mailRefresh');
   document.addEventListener('click', (e) => {
     if (!CC.state.readOnly) return;
