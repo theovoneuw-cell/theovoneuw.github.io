@@ -986,8 +986,8 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   /* En-tête mobile : les contrôles passent sur leur propre ligne pleine largeur et
      s'enroulent à droite → le bouton « Enregistrer » n'est jamais rogné. */
   .topbar-right { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-  .year-select { font-size: 11px; gap: 4px; }
-  .year-select select { padding: 6px 8px; min-width: 0; }
+  .year-select { font-size: 11px; gap: 4px; flex-shrink: 1; min-width: 0; }
+  .year-select select { padding: 6px 8px; min-width: 0; max-width: 104px; }
   .topbar-right .btn, #btnSave { padding: 7px 11px; font-size: 12px; }
 
   /* KPIs et cartes */
