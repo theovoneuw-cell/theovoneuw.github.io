@@ -42,7 +42,8 @@ const AI_GCAL_TOOLS = [
         fin: { type: 'STRING', description: "Fin, même format que debut. Optionnel : par défaut +1h (événement horaire) ou la journée même (journée entière)." },
         journee: { type: 'BOOLEAN', description: 'true pour un événement sur toute la journée (sans heure).' },
         lieu: { type: 'STRING', description: 'Lieu (optionnel)' },
-        description: { type: 'STRING', description: 'Notes (optionnel)' }
+        description: { type: 'STRING', description: 'Notes (optionnel)' },
+        recurrence: { type: 'STRING', description: "Récurrence au format RRULE iCalendar, SANS le préfixe 'RRULE:'. Exemples : 'FREQ=WEEKLY;BYDAY=FR' (tous les vendredis), 'FREQ=WEEKLY;BYDAY=MO,WE' (lundi et mercredi), 'FREQ=DAILY;COUNT=10' (10 jours), 'FREQ=MONTHLY;BYMONTHDAY=1', 'FREQ=WEEKLY;INTERVAL=2' (une semaine sur deux). Pour une date de fin, ajoute ';UNTIL=AAAAMMJJ' (ex ';UNTIL=20261231'). Laisse vide pour un événement unique." }
       },
       required: ['titre', 'debut']
     }
@@ -59,7 +60,8 @@ const AI_GCAL_TOOLS = [
         fin: { type: 'STRING', description: 'Nouvelle fin' },
         journee: { type: 'BOOLEAN' },
         lieu: { type: 'STRING' },
-        description: { type: 'STRING' }
+        description: { type: 'STRING' },
+        recurrence: { type: 'STRING', description: "Nouvelle règle RRULE (même format que pour creer_evenement, sans 'RRULE:'). Chaîne vide pour retirer la récurrence." }
       },
       required: ['id']
     }
@@ -113,6 +115,13 @@ function aiBuildEvent(a) {
   } else if (a.fin) {
     // Modification de la seule fin.
     b.end = journee ? { date: String(a.fin) } : { dateTime: aiNormDT(a.fin), timeZone: AI_TZ };
+  }
+  // Récurrence : Google attend un tableau de lignes RRULE. Chaîne vide = on retire
+  // la récurrence (tableau vide accepté par l'API en PATCH).
+  if (a.recurrence != null) {
+    const rule = String(a.recurrence).trim();
+    if (!rule) b.recurrence = [];
+    else b.recurrence = [/^RRULE:/i.test(rule) ? rule : ('RRULE:' + rule)];
   }
   return b;
 }
@@ -333,7 +342,8 @@ CC.ai = {
     let system = AI_SYSTEM;
     if (agendaOn) {
       system += "\n\nTu peux aussi GÉRER l'agenda Google de Théo : créer, modifier et supprimer "
-        + "des événements, ou consulter son planning, grâce aux fonctions fournies. "
+        + "des événements (y compris RÉCURRENTS via le paramètre recurrence/RRULE : « tous les vendredis à 18h », "
+        + "« un lundi sur deux », « chaque 1er du mois jusqu'en décembre »…), ou consulter son planning, grâce aux fonctions fournies. "
         + "Date et heure actuelles : " + now.toLocaleString('fr-FR') + " (fuseau " + AI_TZ + "). "
         + "Interprète les dates relatives (« demain », « vendredi prochain », « à 15h ») par rapport à cette date. "
         + "Pour MODIFIER ou SUPPRIMER un événement, appelle d'abord lister_evenements sur la bonne plage "

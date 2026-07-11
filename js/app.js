@@ -135,11 +135,16 @@ CC.toast = function (msg, type) {
 // Badge "non lus" sur l'onglet Mails (silencieux si Google non connecté)
 CC.updateMailBadge = async function () {
   const b = document.getElementById('mailsBadge');
-  if (!b) return;
+  const mb = document.getElementById('mMailsBadge');   // miroir dans la barre du bas (mobile)
+  if (!b && !mb) return;
   let r; try { r = await window.api.gmail.unread(); } catch (_) { r = {}; }
   const n = (r && !r.error && r.count) ? r.count : 0;
-  if (n > 0) { b.textContent = n > 99 ? '99+' : String(n); b.classList.remove('hidden'); }
-  else b.classList.add('hidden');
+  const txt = n > 99 ? '99+' : String(n);
+  [b, mb].forEach((el) => {
+    if (!el) return;
+    if (n > 0) { el.textContent = txt; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
+  });
 };
 
 // Reconstruit la liste des annees dans le selecteur
@@ -171,6 +176,13 @@ CC.switchTab = function (name) {
   }
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
+  // Barre de navigation mobile : synchro de l'état actif + fermeture de la feuille "Plus".
+  const MOBILE_PRIMARY = ['today', 'compta', 'agenda', 'mails'];
+  document.querySelectorAll('.mtab[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.msheet-item[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+  const more = document.getElementById('mMore');
+  if (more) more.classList.toggle('active', MOBILE_PRIMARY.indexOf(name) === -1);
+  if (CC.closeMoreSheet) CC.closeMoreSheet();
   if (name === 'compta') CC.switchSub(CC.state.subTab || 'dashboard');
   if (name === 'today' && CC.renderToday) CC.renderToday();
   if (name === 'agenda' && CC.agenda) CC.agenda.render();
@@ -226,6 +238,53 @@ CC.confirmClose = async function () {
 };
 
 // ---------------------------------------------------------------------------
+// Navigation mobile : barre d'onglets en bas + feuille "Plus" + swipe entre onglets.
+// Tout est inerte sur desktop (la barre est masquée en CSS ; le swipe ne s'active
+// qu'en dessous de 720px de large).
+// ---------------------------------------------------------------------------
+CC.openMoreSheet = function () { const s = document.getElementById('moreSheet'); if (s) s.classList.remove('hidden'); };
+CC.closeMoreSheet = function () { const s = document.getElementById('moreSheet'); if (s) s.classList.add('hidden'); };
+
+CC.initMobileNav = function () {
+  // Clic sur une icône de la barre ou un item de la feuille -> change d'onglet.
+  document.querySelectorAll('.mtab[data-tab], .msheet-item[data-tab]').forEach((b) => {
+    b.addEventListener('click', () => CC.switchTab(b.dataset.tab));
+  });
+  const more = document.getElementById('mMore');
+  if (more) more.addEventListener('click', () => CC.openMoreSheet());
+  // Fermeture de la feuille : clic sur le fond ou tout élément [data-close].
+  const sheet = document.getElementById('moreSheet');
+  if (sheet) sheet.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target === sheet) CC.closeMoreSheet(); });
+
+  // --- Swipe horizontal pour changer d'onglet (téléphone uniquement) ---
+  const main = document.querySelector('main');
+  if (!main) return;
+  // Zones à ignorer : elles gèrent leur propre défilement/geste horizontal.
+  const EXCLUDE = '.leaflet-container, .table-wrap, .chart-box, .subtabs, .dp, input, textarea, select, .mobile-sheet';
+  let x0 = null, y0 = null, tracking = false;
+  main.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 720 || !e.touches || e.touches.length !== 1) { tracking = false; return; }
+    if (e.target.closest(EXCLUDE)) { tracking = false; return; }
+    const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; tracking = true;
+  }, { passive: true });
+  main.addEventListener('touchend', (e) => {
+    if (!tracking || x0 == null) return;
+    tracking = false;
+    const t = (e.changedTouches && e.changedTouches[0]); if (!t) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;   // pas assez horizontal
+    // Ordre = onglets du haut visibles (Spotify masqué sur PWA est exclu).
+    const order = Array.prototype.slice.call(document.querySelectorAll('.tab[data-tab]'))
+      .filter((tb) => !tb.classList.contains('hidden')).map((tb) => tb.dataset.tab);
+    const cur = order.findIndex((n) => { const p = document.getElementById('tab-' + n); return p && p.classList.contains('active'); });
+    if (cur < 0) return;
+    const next = dx < 0 ? cur + 1 : cur - 1;   // glisser vers la gauche = onglet suivant
+    if (next < 0 || next >= order.length) return;   // pas de bouclage aux extrémités
+    CC.switchTab(order[next]);
+  }, { passive: true });
+};
+
+// ---------------------------------------------------------------------------
 // Initialisation
 // ---------------------------------------------------------------------------
 async function init() {
@@ -237,6 +296,9 @@ async function init() {
   document.querySelectorAll('.subtab').forEach((tab) => {
     tab.addEventListener('click', () => CC.switchSub(tab.dataset.sub));
   });
+
+  // Barre de navigation mobile (bas d'écran) + feuille "Plus"
+  CC.initMobileNav();
 
   // Selecteur d'annee
   document.getElementById('yearSelect').addEventListener('change', (e) => {

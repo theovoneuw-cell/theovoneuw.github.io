@@ -8,7 +8,7 @@
 // Pensé pour le déploiement « à plat » (web/) : tout est à la racine du site.
 // ---------------------------------------------------------------------------
 
-const CACHE = 'macompta-v14';
+const CACHE = 'macompta-v16';
 
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
@@ -21,7 +21,7 @@ const SHELL = [
   'js/settings.js', 'js/datepicker.js', 'js/stats.js', 'js/charts.js', 'js/import.js', 'js/pdfimport.js',
   'js/factures.js', 'js/fiscal.js', 'js/bilan.js', 'js/ai.js', 'js/spotify.js', 'js/connections.js',
   'js/agenda.js', 'js/mailbox.js', 'js/trajets.js', 'js/notes.js', 'js/today.js',
-  'js/privacy.js', 'js/storage.js', 'js/app.js',
+  'js/privacy.js', 'js/storage.js', 'js/app.js', 'js/theme.js',
   'js/google-auth-web.js', 'js/drive-store.js', 'js/api-web.js'
 ];
 

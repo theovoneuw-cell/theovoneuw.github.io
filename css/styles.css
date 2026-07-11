@@ -49,6 +49,46 @@
   --radius: 12px;
 }
 
+/* ===================== THÈME SOMBRE ===================== */
+/* Surcharge des mêmes tokens : tout le reste de la feuille (qui utilise var(--…))
+   suit automatiquement. Neutres teintés indigo, accents éclaircis pour rester
+   lisibles sur fond foncé. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #14121f;
+  --surface: #1c1930;
+  --surface-2: #262239;
+  --border: #302b47;
+  --border-strong: #3d3757;
+  --ink: #f2f0fa;
+  --text: #d8d5ea;
+  --muted: #a19dc0;
+  --soft: #7b7799;
+
+  --accent: #8b82f2;
+  --accent-strong: #a49cf6;
+  --accent-soft: #2a2550;
+
+  --coral: #fb7185;
+  --coral-strong: #fb7185;
+  --coral-soft: #3a2230;
+
+  --green: #34d399;  --green-soft: #123a2d;
+  --amber: #fbbf24;  --amber-soft: #3a2e12;
+  --red: #f87171;    --red-soft: #3a1f22;
+  --blue: #818cf8;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 4px 14px rgba(0,0,0,.55);
+  --shadow-soft: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.45);
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 10px 26px rgba(0,0,0,.5);
+}
+:root[data-theme="dark"] .topbar { box-shadow: 0 6px 22px rgba(0,0,0,.45); }
+/* Pense-bête : le dégradé clair codé en dur (#fffdf4) devient une teinte ambrée discrète. */
+:root[data-theme="dark"] .card-memo { background: linear-gradient(180deg, rgba(246,191,38,.07) 0%, var(--surface) 60%); }
+/* Bouton "danger" : fond blanc codé en dur -> surface du thème. */
+:root[data-theme="dark"] .btn-danger { background: var(--surface); border-color: var(--red-soft); }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
@@ -91,15 +131,15 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 22%, var(--coral) 70%, var(--coral-strong) 100%);
   opacity: .9;
 }
-.brand { display: flex; align-items: center; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .brand .logo {
   width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
   background: linear-gradient(135deg, var(--accent) 0%, var(--coral) 140%);
   color: #fff; font-family: var(--serif); font-size: 19px; font-weight: 700;
   box-shadow: 0 4px 12px rgba(79,70,229,.30);
 }
-.brand h1 { font-family: var(--serif); font-size: 19px; margin: 0; letter-spacing: -.2px; color: var(--ink); font-weight: 600; }
-.brand .sub { margin: 0; font-size: 11px; color: var(--coral-strong); letter-spacing: .4px; font-weight: 600; }
+.brand h1 { font-family: var(--serif); font-size: 19px; margin: 0; letter-spacing: -.2px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+.brand .sub { margin: 0; font-size: 11px; color: var(--coral-strong); letter-spacing: .4px; font-weight: 600; white-space: nowrap; }
 
 .tabs { display: flex; gap: 2px; height: 100%; align-items: center; }
 .tab { background: transparent; border: none; color: var(--muted); padding: 8px 15px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; display: inline-flex; align-items: center; white-space: nowrap; }
@@ -132,6 +172,49 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
   100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); }
 }
 @media (prefers-reduced-motion: reduce) { .tab-badge, .tab-badge::after { animation: none; } }
+
+/* ===================== BARRE DE NAVIGATION MOBILE ===================== */
+/* Masquée en desktop ; activée dans le media query mobile plus bas. Icônes SVG
+   type app native, atteignables au pouce. */
+.mobilebar { display: none; }
+.mobile-sheet { display: none; }
+.mtab {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; padding: 6px 2px; background: none; border: none;
+  cursor: pointer; font-family: inherit; font-size: 10.5px; font-weight: 600;
+  color: var(--muted); position: relative; -webkit-tap-highlight-color: transparent;
+}
+.mtab svg { display: block; }
+.mtab span { line-height: 1; white-space: nowrap; }
+.mtab.active { color: var(--accent); }
+.mtab-badge {
+  position: absolute; top: 2px; left: 50%; margin-left: 4px; min-width: 16px; height: 16px;
+  padding: 0 4px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; background: linear-gradient(135deg, #ff8da3 0%, var(--coral-strong) 100%);
+  color: #fff; font-size: 10px; font-weight: 800; line-height: 1;
+  box-shadow: 0 1px 4px rgba(244,63,94,.45), 0 0 0 2px var(--surface);
+}
+.mtab-badge.hidden { display: none; }
+/* Feuille "Plus" */
+.mobile-sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.42); }
+.mobile-sheet-panel {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  border-radius: 18px 18px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.22);
+  padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+  animation: sheetUp .22s cubic-bezier(.32,.72,0,1);
+}
+.msheet-grip { width: 40px; height: 4px; border-radius: 3px; background: var(--border-strong); margin: 4px auto 10px; }
+.msheet-item {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 13px 10px;
+  background: none; border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+  font-size: 15px; font-weight: 600; color: var(--text); text-align: left;
+}
+.msheet-item:active { background: var(--surface-2); }
+.msheet-item svg { color: var(--accent); flex-shrink: 0; }
+.msheet-item.active { color: var(--accent); background: var(--accent-soft); }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .mobile-sheet-panel { animation: none; } }
 
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .year-select { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
@@ -865,16 +948,25 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 @media (max-width: 720px) {
   body { height: 100dvh; }
 
-  main { padding: 14px 12px calc(16px + env(safe-area-inset-bottom)); }
+  main { padding: 14px 12px calc(70px + env(safe-area-inset-bottom)); }
 
   /* En-tête : compact, empilé, onglets défilants au doigt */
   .topbar { height: auto; flex-wrap: wrap; gap: 8px 12px; padding: calc(9px + env(safe-area-inset-top)) 12px 9px; }
   .brand .sub { display: none; }
   .brand h1 { font-size: 17px; }
   .brand .logo { width: 33px; height: 33px; font-size: 17px; }
-  .tabs { order: 2; width: 100%; height: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px; padding-bottom: 2px; scrollbar-width: none; }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { flex: 0 0 auto; white-space: nowrap; padding: 8px 12px; font-size: 13px; }
+  /* Onglets du haut masqués sur mobile : remplacés par la barre du bas. */
+  .tabs { display: none; }
+
+  /* Barre de navigation fixe en bas (téléphone uniquement) */
+  .mobilebar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 18px rgba(27,23,51,.08);
+  }
+  .mobile-sheet { display: block; position: fixed; inset: 0; z-index: 60; }
+  .mobile-sheet.hidden { display: none; }
   .topbar-right { margin-left: auto; gap: 8px; }
   .year-select { font-size: 11px; gap: 4px; }
   .year-select select { padding: 6px 8px; min-width: 0; }
