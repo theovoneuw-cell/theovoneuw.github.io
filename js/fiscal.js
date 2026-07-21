@@ -52,7 +52,11 @@ CC.renderFiscal = function () {
         <div class="un-actions">
           <button type="button" class="btn btn-primary" id="unCopy">Copier&nbsp;: ${caR.toLocaleString('fr-FR')} €</button>
           <label class="check un-declare"><input type="checkbox" id="unDeclare" ${dec.declare ? 'checked' : ''}> Marquer déclaré</label>
-          <button type="button" class="btn" id="unOpen">Ouvrir urssaf.fr ↗</button>
+          <button type="button" class="btn-urssaf" id="unOpen" title="Ouvrir le site auto-entrepreneur de l'Urssaf">
+            <svg class="urssaf-logo" viewBox="0 22 105 106" width="19" height="19" aria-hidden="true"><path fill="#1ECAD3" d="M0.16,48.81c0,14.5,11.76,26.26,26.26,26.26s26.26-11.76,26.26-26.26S40.92,22.55,26.42,22.55C11.91,22.55,0.16,34.31,0.16,48.81"/><path fill="#90B3E6" d="M52.48,75.07h52.13c0,29.01-23.34,52.52-52.13,52.52C52.48,127.59,52.48,75.07,52.48,75.07z"/><path fill="#0071CE" d="M104.6,22.55v52.52H52.48C52.48,46.06,75.81,22.55,104.6,22.55"/><path fill="#D0DDF4" d="M52.48,75.07H0.35c0,29.01,23.34,52.52,52.13,52.52C52.48,127.59,52.48,75.07,52.48,75.07z"/></svg>
+            <span>Déclarer sur <b>urssaf.fr</b></span>
+            <svg class="urssaf-ext" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+          </button>
         </div>
       </div>`;
 

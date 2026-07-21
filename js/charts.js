@@ -2,18 +2,61 @@
 window.CC = window.CC || {};
 CC._charts = {};
 
+// Couleurs des graphiques. Celles qui dépendent du thème ne sont PAS figées ici :
+// elles sont relues depuis les variables CSS par refreshTheme(), pour que les
+// graphiques suivent le thème clair/sombre au lieu de rester en clair.
 const COL = {
   green: '#0ea371', amber: '#c2740a', red: '#dc2626', blue: '#6366f1',
   brand: '#4f46e5', coral: '#fb7185',
   ink: '#1b1733', grayBar: '#ddd9ec',
-  grid: 'rgba(27,23,51,.06)', text: '#6c6890'
+  grid: 'rgba(27,23,51,.06)', text: '#6c6890', surface: '#ffffff'
 };
 // Palette catégories : cohérente avec l'identité Indigo & Corail
 const CAT_COLORS = ['#4f46e5', '#fb7185', '#0ea371', '#f59e0b', '#8b5cf6', '#14b8a6', '#6366f1'];
 
-Chart.defaults.color = COL.text;
-Chart.defaults.font.family = 'Inter, Segoe UI, system-ui, sans-serif';
-Chart.defaults.font.size = 11.5;
+// Relit la charte depuis le CSS (source de vérité unique) et l'applique à Chart.js.
+function refreshTheme() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  COL.text = v('--muted', COL.text);
+  COL.ink = v('--ink', COL.ink);
+  COL.green = v('--green', COL.green);
+  COL.amber = v('--amber', COL.amber);
+  COL.red = v('--red', COL.red);
+  COL.blue = v('--blue', COL.blue);
+  COL.brand = v('--accent', COL.brand);
+  COL.coral = v('--coral', COL.coral);
+  COL.surface = v('--surface', COL.surface);
+  COL.grid = dark ? 'rgba(255,255,255,.07)' : 'rgba(27,23,51,.06)';
+  COL.grayBar = v('--border-strong', COL.grayBar);
+
+  Chart.defaults.color = COL.text;
+  // Manrope : la police réellement chargée par l'app (« Inter » ne l'a jamais été,
+  // les graphiques retombaient donc sur une police système sans rapport).
+  Chart.defaults.font.family = 'Manrope, Segoe UI, system-ui, sans-serif';
+  Chart.defaults.font.size = 11.5;
+
+  // Infobulles accordées à la charte (au lieu du noir translucide par défaut).
+  const tt = Chart.defaults.plugins.tooltip;
+  tt.backgroundColor = dark ? 'rgba(12,10,24,.94)' : 'rgba(27,23,51,.94)';
+  tt.borderColor = dark ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.18)';
+  tt.borderWidth = 1;
+  tt.cornerRadius = 12;
+  tt.padding = 11;
+  tt.titleFont = { family: 'Sora, Segoe UI, system-ui, sans-serif', size: 12, weight: '600' };
+  tt.bodyFont = { family: 'Manrope, Segoe UI, system-ui, sans-serif', size: 12 };
+  tt.displayColors = false;
+}
+refreshTheme();
+
+// Rejoue les graphiques visibles quand le thème bascule (le canvas est peint une
+// seule fois : sans ce rappel, un graphique tracé en clair resterait clair).
+CC.chartsRefreshTheme = function () {
+  refreshTheme();
+  try { if (CC.renderDashboard) CC.renderDashboard(); } catch (_) {}
+};
 
 function makeChart(id, config) {
   const ctx = document.getElementById(id);
@@ -21,10 +64,14 @@ function makeChart(id, config) {
   if (CC._charts[id]) CC._charts[id].destroy();
   CC._charts[id] = new Chart(ctx, config);
 }
-const baseScales = {
-  x: { grid: { display: false }, ticks: { color: COL.text } },
-  y: { grid: { color: COL.grid }, border: { display: false }, ticks: { color: COL.text }, beginAtZero: true }
-};
+// Fonction (et non constante) : les couleurs doivent être relues À CHAQUE rendu,
+// sinon elles resteraient figées sur le thème actif au chargement de la page.
+function baseScales() {
+  return {
+    x: { grid: { display: false }, ticks: { color: COL.text } },
+    y: { grid: { color: COL.grid }, border: { display: false }, ticks: { color: COL.text }, beginAtZero: true }
+  };
+}
 function eurTip() { return (c) => `${c.dataset.label || ''}: ${CC.util.eur0(c.parsed.y ?? c.parsed)}`; }
 
 // ---------------------------------------------------------------------------
@@ -75,21 +122,21 @@ CC.renderDashboard = function () {
     makeChart('chartMonthly', {
       type: 'bar',
       data: { labels: CC.MOIS, datasets: [{ label: 'Encaissé', data: enc, backgroundColor: COL.green, borderRadius: 4, maxBarThickness: 26 }] },
-      options: { responsive: true, maintainAspectRatio: false, scales: baseScales, plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
+      options: { responsive: true, maintainAspectRatio: false, scales: baseScales(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
     });
   } else {
     const years = CC.stats.years(all);
     makeChart('chartMonthly', {
       type: 'bar',
       data: { labels: years, datasets: [{ label: 'Encaissé', data: years.map((y) => CC.stats.encaisseYear(all, y)), backgroundColor: COL.green, borderRadius: 4, maxBarThickness: 60 }] },
-      options: { responsive: true, maintainAspectRatio: false, scales: baseScales, plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
+      options: { responsive: true, maintainAspectRatio: false, scales: baseScales(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
     });
   }
 
   // ---------- Doughnut ----------
   makeChart('chartStatus', {
     type: 'doughnut',
-    data: { labels: ['Encaissé', 'En attente', 'En retard', 'Prévisionnel'], datasets: [{ data: [sums.encaisse, sums.attente, sums.retard, sums.prevu], backgroundColor: [COL.green, COL.amber, COL.red, COL.blue], borderWidth: 2, borderColor: '#fff' }] },
+    data: { labels: ['Encaissé', 'En attente', 'En retard', 'Prévisionnel'], datasets: [{ data: [sums.encaisse, sums.attente, sums.retard, sums.prevu], backgroundColor: [COL.green, COL.amber, COL.red, COL.blue], borderWidth: 2, borderColor: COL.surface }] },
     options: { responsive: true, maintainAspectRatio: false, cutout: '64%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${CC.util.eur0(c.parsed)}` } } } }
   });
 
@@ -98,7 +145,7 @@ CC.renderDashboard = function () {
   makeChart('chartYears', {
     type: 'bar',
     data: { labels: years, datasets: [{ label: 'Encaissé', data: years.map((y) => CC.stats.encaisseYear(all, y)), backgroundColor: years.map((y) => (y === year ? COL.ink : COL.grayBar)), borderRadius: 4, maxBarThickness: 70 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: baseScales, plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
+    options: { responsive: true, maintainAspectRatio: false, scales: baseScales(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
   });
 
   // ---------- Top clients ----------
@@ -142,7 +189,7 @@ CC.renderDashboard = function () {
   makeChart('chartSeason', {
     type: 'line',
     data: { labels: CC.MOIS, datasets: [{ label: 'Encaissé moyen', data: CC.stats.seasonality(all), borderColor: COL.brand, backgroundColor: 'rgba(79,70,229,.12)', fill: true, tension: 0.35, pointRadius: 2.5, borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: baseScales, plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
+    options: { responsive: true, maintainAspectRatio: false, scales: baseScales(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: eurTip() } } } }
   });
 
   // ---------- CA par activite ----------

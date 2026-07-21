@@ -395,7 +395,7 @@ CC.ai = {
     }
 
     this._setBusy(false);
-    if (r && r.error) { CC.toast('Réponse impossible.', 'err'); chat.messages.push({ role: 'model', text: '⚠️ ' + r.error }); }
+    if (r && r.error) { CC.toast('Réponse impossible.', 'err'); chat.messages.push({ role: 'model', text: 'Erreur : ' + r.error }); }
     else if (r && r.functionCalls) { chat.messages.push({ role: 'model', text: '(action effectuée)' }); }
     else { chat.messages.push({ role: 'model', text: (r && r.text) || '(réponse vide)' }); }
     chat.updatedAt = Date.now();

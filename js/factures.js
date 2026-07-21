@@ -216,7 +216,7 @@ CC.facturesView = {
       CC.CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('btnNewFacture').addEventListener('click', () => CC.facturesView.openModal(null));
     const indy = document.getElementById('btnIndy');
-    if (indy) indy.addEventListener('click', () => { try { window.api.openUrl('https://app.indy.fr/facturation/factures'); } catch (_) {} });
+    if (indy) indy.addEventListener('click', () => { try { window.api.openUrl(indyUrl()); } catch (_) {} });
     // Sélecteurs de date (composant partagé, cohérent avec l'Agenda)
     if (CC.dp) CC.dp.init(document.getElementById('modalFacture'));
     document.getElementById('btnCancelModal').addEventListener('click', () => CC.facturesView.closeModal());
@@ -284,5 +284,23 @@ function syncPeriode() {
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function dotColor(st) { return st === 'recue' ? '#0ea371' : st === 'retard' ? '#dc2626' : st === 'prevu' ? '#6366f1' : '#c2740a'; }
+// Destination du bouton « Facturation Indy ».
+//
+// Indy publie des « liens universels » (app.indy.fr/.well-known/apple-app-site-association)
+// mais UNIQUEMENT pour /compte/banques, /connexion-banque et /compte-pro/encaissements.
+// La page des factures (/facturation/factures) n'y figure pas : sur iPhone elle
+// s'ouvre donc forcément dans Safari, jamais dans l'app.
+//
+// D'où deux destinations : sur iPhone on vise un chemin déclaré, ce qui ouvre bien
+// l'app Indy installée (quitte à arriver sur les encaissements plutôt que sur les
+// factures) ; ailleurs on garde la page des factures, plus directe.
+// Si Indy élargit un jour sa liste, il suffira de remettre le même chemin partout.
+function indyUrl() {
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  return iOS
+    ? 'https://app.indy.fr/compte-pro/encaissements'
+    : 'https://app.indy.fr/facturation/factures';
+}
+
 // Icône trombone (SVG, hérite la couleur du texte)
 const ICON_CLIP = '<svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';

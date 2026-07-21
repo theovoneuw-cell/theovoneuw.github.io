@@ -47,6 +47,48 @@
   --shadow-soft: 0 1px 2px rgba(27,23,51,.04), 0 4px 14px rgba(27,23,51,.05);
   --shadow-card: 0 1px 2px rgba(27,23,51,.04), 0 10px 26px rgba(27,23,51,.06);
   --radius: 12px;
+
+  /* ---- Échelle de rayons (esprit iOS : généreux et cohérent) ----
+     Un seul endroit à toucher pour rendre toute l'app plus ou moins arrondie. */
+  --r-xs: 8px;     /* pastilles, mini-boutons */
+  --r-sm: 11px;    /* champs, boutons */
+  --r-md: 14px;    /* petites cartes internes (qcell, fc, chips) */
+  --r-lg: 18px;    /* cartes, tableaux, panneaux */
+  --r-xl: 24px;    /* modales, grandes surfaces */
+  --r-2xl: 28px;   /* feuilles mobiles */
+  --r-pill: 999px;
+
+  /* ---- Verre dépoli (« liquid glass ») ----
+     Les surfaces FLOTTANTES (en-tête, barre mobile, modales, popovers) sont
+     translucides et floutent ce qui passe dessous ; les surfaces de CONTENU
+     (cartes, tableaux) restent opaques pour que les chiffres restent nets. */
+  --glass-bg: rgba(255,255,255,.68);
+  --glass-bg-strong: rgba(255,255,255,.84);
+  --glass-blur: saturate(180%) blur(22px);
+  --glass-border: rgba(255,255,255,.65);
+  /* Filet clair en haut de la surface : c'est lui qui donne l'effet « épaisseur de verre » */
+  --glass-shine: inset 0 1px 0 rgba(255,255,255,.75);
+  --glass-shadow: 0 1px 2px rgba(27,23,51,.05), 0 12px 34px rgba(27,23,51,.10);
+
+  /* ---- Verre DENSE : les cartes de contenu ----
+     Volontairement SANS backdrop-filter. Ce qui passe derrière une carte, c'est
+     uniquement le dégradé « aurore » du fond, qui est déjà lisse : le flouter ne
+     changerait rien à l'œil, mais coûterait une couche de composition par carte
+     (et il y en a beaucoup). L'alpha seul donne exactement le même rendu, gratuit.
+     Le verre vient donc du trio : voile translucide + bord clair + filet de crête. */
+  --card-bg: rgba(255,255,255,.90);
+  --card-bg-2: rgba(255,255,255,.66);   /* sous-blocs internes (qcell, fc, suivi…) */
+  --card-border: rgba(255,255,255,.85);
+  --card-ring: rgba(27,23,51,.07);      /* liseré extérieur qui détache du fond */
+  --card-shine: inset 0 1px 0 rgba(255,255,255,.9);
+
+  /* ---- Fond « aurore » ----
+     Halos larges et très désaturés : c'est LE décor que le verre révèle. */
+  --aurora:
+    radial-gradient(1180px 620px at 88% -12%, rgba(99,102,241,.22), transparent 62%),
+    radial-gradient(980px 600px at -8% 8%,   rgba(129,140,248,.16), transparent 58%),
+    radial-gradient(900px 640px at 12% 106%, rgba(251,113,133,.16), transparent 58%),
+    radial-gradient(760px 520px at 96% 88%,  rgba(244,63,94,.10),  transparent 55%);
 }
 
 /* ===================== THÈME SOMBRE ===================== */
@@ -82,23 +124,47 @@
   --shadow: 0 1px 2px rgba(0,0,0,.45), 0 4px 14px rgba(0,0,0,.55);
   --shadow-soft: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.45);
   --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 10px 26px rgba(0,0,0,.5);
+
+  /* Verre sombre : on floute la même chose, mais le voile est teinté indigo nuit
+     et le filet de crête devient une lueur blanche très faible. */
+  --glass-bg: rgba(28,25,48,.62);
+  --glass-bg-strong: rgba(28,25,48,.82);
+  --glass-border: rgba(255,255,255,.10);
+  --glass-shine: inset 0 1px 0 rgba(255,255,255,.08);
+  --glass-shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 34px rgba(0,0,0,.5);
+
+  /* Verre dense en sombre : le voile s'assombrit, la crête devient une lueur ténue. */
+  --card-bg: rgba(32,28,54,.86);
+  --card-bg-2: rgba(255,255,255,.045);
+  --card-border: rgba(255,255,255,.10);
+  --card-ring: rgba(0,0,0,.35);
+  --card-shine: inset 0 1px 0 rgba(255,255,255,.07);
+
+  /* Aurore de nuit : mêmes halos, plus saturés car le fond très sombre les absorbe. */
+  --aurora:
+    radial-gradient(1180px 620px at 88% -12%, rgba(99,102,241,.26), transparent 62%),
+    radial-gradient(980px 600px at -8% 8%,   rgba(79,70,229,.20),  transparent 58%),
+    radial-gradient(900px 640px at 12% 106%, rgba(244,63,94,.14),  transparent 58%),
+    radial-gradient(760px 520px at 96% 88%,  rgba(251,113,133,.10), transparent 55%);
 }
 :root[data-theme="dark"] .topbar { box-shadow: 0 6px 22px rgba(0,0,0,.45); }
 /* Pense-bête : le dégradé clair codé en dur (#fffdf4) devient une teinte ambrée discrète. */
-:root[data-theme="dark"] .card-memo { background: linear-gradient(180deg, rgba(246,191,38,.07) 0%, var(--surface) 60%); }
+:root[data-theme="dark"] .card-memo { background: linear-gradient(180deg, rgba(246,191,38,.09) 0%, transparent 58%), var(--card-bg); }
 /* Bouton "danger" : fond blanc codé en dur -> surface du thème. */
 :root[data-theme="dark"] .btn-danger { background: var(--surface); border-color: var(--red-soft); }
 /* Agenda : cases des mois précédent/suivant (codées en dur #f6f5fc) -> teinte sombre discrète. */
 :root[data-theme="dark"] .cal-cell.out { background: rgba(255,255,255,.035); }
+/* Case « Total » des cotisations : son fond est `--ink`, qui devient CLAIR en thème
+   sombre — le texte blanc par-dessus devenait illisible. On la repasse en indigo
+   profond, seule teinte qui garde le contraste dans les deux thèmes. */
+:root[data-theme="dark"] .qcell.total { border-color: rgba(255,255,255,.20); box-shadow: var(--card-shine), 0 6px 20px rgba(0,0,0,.45); }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  /* Voile dégradé très léger indigo/corail : le fond respire au lieu d'un aplat mort */
-  background:
-    radial-gradient(1000px 560px at 100% -8%, rgba(99,102,241,.07), transparent 58%),
-    radial-gradient(760px 540px at -6% 108%, rgba(251,113,133,.05), transparent 55%),
-    var(--paper);
+  /* Fond « aurore » : c'est le décor que tout le verre de l'app révèle. Fixe (il ne
+     défile pas), donc les cartes glissent dessus comme des plaques sur un vitrail. */
+  background: var(--aurora), var(--paper);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--sans);
@@ -116,7 +182,7 @@ body {
   background: linear-gradient(90deg, var(--coral-soft) 0%, #fff3d6 100%);
   border-bottom: 1px solid var(--coral); }
 #ddBanner.show { display: flex; }
-#ddBanner .dd-ic { font-size: 15px; }
+#ddBanner .dd-ic { display: inline-flex; align-items: center; flex-shrink: 0; color: var(--coral-strong); }
 #ddBanner button { margin-left: auto; flex-shrink: 0; }
 body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 
@@ -124,23 +190,38 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 .topbar {
   display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
   padding: 8px 14px; min-height: 64px;
-  background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  /* Verre dépoli : voile translucide + flou de ce qui passe dessous. */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border); flex-shrink: 0;
   position: relative; z-index: 5;
-  box-shadow: 0 6px 22px rgba(27,23,51,.05);
+  box-shadow: var(--glass-shine), 0 6px 22px rgba(27,23,51,.06);
+}
+/* Repli : sans backdrop-filter (vieux moteur), on repasse à un fond plein pour
+   que le texte reste lisible au lieu de flotter sur un voile transparent. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar { background: var(--surface); }
 }
 /* Filet "signature" indigo -> corail sous l'en-tête */
+/* Filet de lumière sous l'en-tête : s'éteint aux deux extrémités au lieu de barrer
+   l'écran d'un trait plein — sinon il concurrence l'aurore du fond. */
 .topbar::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 22%, var(--coral) 70%, var(--coral-strong) 100%);
-  opacity: .9;
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 18%, var(--coral) 72%, transparent 100%);
+  opacity: .55;
 }
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* Le dégradé et le symbole sont maintenant DANS le SVG : ici on ne gère plus que
+   l'encombrement et l'ombre portée. */
 .brand .logo {
-  width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--coral) 140%);
-  color: #fff; font-family: var(--serif); font-size: 19px; font-weight: 700;
-  box-shadow: 0 4px 12px rgba(79,70,229,.30);
+  width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0;
+  /* 22 % = exactement l'arrondi du SVG (rx 114 sur 512), pour que l'ombre portée
+     épouse la silhouette réelle du logo quelle que soit sa taille. */
+  border-radius: 22%;
+  box-shadow: 0 4px 12px rgba(79,70,229,.32);
 }
+.brand .logo svg { display: block; width: 100%; height: 100%; }
 .brand h1 { font-family: var(--serif); font-size: 17px; margin: 0; letter-spacing: -.2px; color: var(--ink); font-weight: 600; white-space: nowrap; }
 .brand .sub { margin: 0; font-size: 11px; color: var(--coral-strong); letter-spacing: .4px; font-weight: 600; white-space: nowrap; }
 
@@ -148,9 +229,11 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
    trop étroite (flex-wrap), plutôt que d'être tronqués — le nom (gauche) et les actions
    (droite) restent toujours en place et visibles. */
 .tabs { display: flex; flex: 1 1 auto; gap: 2px 3px; align-items: center; min-width: 0; flex-wrap: wrap; }
-.tab { background: transparent; border: none; color: var(--muted); padding: 7px 10px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; display: inline-flex; align-items: center; white-space: nowrap; }
-.tab:hover { color: var(--ink); background: var(--paper); }
-.tab.active { color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.tab { background: transparent; border: none; color: var(--muted); padding: 7px 13px; border-radius: var(--r-pill); cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; display: inline-flex; align-items: center; white-space: nowrap; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
+.tab:hover { color: var(--ink); background: rgba(27,23,51,.05); }
+/* Onglet actif : pastille de verre surélevée (le « segmented control » iOS). */
+.tab.active { color: var(--accent); background: var(--glass-bg-strong); font-weight: 700; box-shadow: var(--glass-shine), 0 1px 3px rgba(27,23,51,.10), 0 4px 12px rgba(79,70,229,.10); }
+:root[data-theme="dark"] .tab:hover { background: rgba(255,255,255,.06); }
 /* Pastille "mails non lus" (boîte principale uniquement) — pensée pour attirer
    l'œil sans agresser : pilule dégradée corail, halo qui pulse doucement. */
 .tab-badge {
@@ -202,20 +285,29 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 }
 .mtab-badge.hidden { display: none; }
 /* Feuille "Plus" */
-.mobile-sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.42); }
+.mobile-sheet-backdrop { position: absolute; inset: 0; background: rgba(10,8,22,.38); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .mobile-sheet-panel {
   position: absolute; left: 0; right: 0; bottom: 0;
-  background: var(--surface); border-top: 1px solid var(--border);
-  border-radius: 18px 18px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.22);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  box-shadow: var(--glass-shine), 0 -8px 34px rgba(0,0,0,.24);
   padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
-  animation: sheetUp .22s cubic-bezier(.32,.72,0,1);
+  animation: sheetUp .28s cubic-bezier(.32,.72,0,1);
 }
-.msheet-grip { width: 40px; height: 4px; border-radius: 3px; background: var(--border-strong); margin: 4px auto 10px; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .mobile-sheet-panel { background: var(--surface); }
+}
+.msheet-grip { width: 40px; height: 5px; border-radius: var(--r-pill); background: var(--border-strong); margin: 4px auto 10px; }
 .msheet-item {
-  display: flex; align-items: center; gap: 14px; width: 100%; padding: 13px 10px;
-  background: none; border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 13px 12px;
+  background: none; border: none; border-radius: var(--r-md); cursor: pointer; font-family: inherit;
   font-size: 15px; font-weight: 600; color: var(--text); text-align: left;
+  transition: background .14s ease, transform .14s ease;
 }
+.msheet-item:active { transform: scale(.98); }
 .msheet-item:active { background: var(--surface-2); }
 .msheet-item svg { color: var(--accent); flex-shrink: 0; }
 .msheet-item.active { color: var(--accent); background: var(--accent-soft); }
@@ -228,10 +320,50 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 .year-select { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
 
 /* ===================== BUTTONS / INPUTS ===================== */
-.btn { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 15px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .12s, border-color .12s; }
+.btn { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: background .14s, border-color .14s, transform .12s, box-shadow .14s; }
 .btn:hover { background: var(--surface-2); border-color: var(--soft); }
+/* Retour tactile façon iOS : le bouton s'enfonce très légèrement. */
+.btn:active { transform: scale(.975); }
+/* État désactivé : il manquait complètement. « Enregistrer le trajet » restait
+   pimpant alors qu'il était inactif tant qu'aucun trajet n'avait été calculé. */
+.btn:disabled, .btn[disabled] {
+  opacity: .42; cursor: not-allowed; box-shadow: none; filter: saturate(.55);
+}
+.btn:disabled:hover, .btn[disabled]:hover { background: var(--surface); border-color: var(--border-strong); }
+.btn-primary:disabled:hover, .btn-coral:disabled:hover { filter: saturate(.55); }
+.btn:disabled:active, .btn[disabled]:active { transform: none; }
 .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%); border-color: var(--accent-strong); color: #fff; font-weight: 600; box-shadow: 0 2px 9px rgba(79,70,229,.28); }
 .btn-primary:hover { background: linear-gradient(135deg, var(--accent-strong) 0%, #36309f 100%); border-color: #36309f; box-shadow: 0 3px 12px rgba(79,70,229,.34); }
+/* Bouton "Facturation Indy" : aux couleurs d'Indy (noir #171514, rose #FA5D89),
+   avec leur logo. C'est un raccourci vers app.indy.fr, d'où l'identité distincte. */
+.btn-indy {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: #171514; border: 1px solid #171514; color: #FEF7EC;
+  border-radius: var(--r-sm); padding: 7px 14px; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  transition: background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease;
+}
+.btn-indy .indy-logo { fill: currentColor; flex-shrink: 0; }
+.btn-indy .indy-ext { opacity: .6; flex-shrink: 0; }
+.btn-indy:hover { background: #FA5D89; border-color: #FA5D89; color: #171514; box-shadow: 0 3px 12px rgba(250,93,137,.35); }
+.btn-indy:hover .indy-ext { opacity: 1; }
+.btn-indy:active { background: #e14a75; border-color: #e14a75; }
+/* Bouton "Déclarer sur urssaf.fr" : logo et couleurs officiels de l'Urssaf
+   (bleu marine #1A428A). Fond blanc dans les deux thèmes pour que le logo
+   reste lisible, comme l'exige une identité de marque. */
+.btn-urssaf {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: #fff; border: 1px solid #c6d4ea; color: #1A428A;
+  border-radius: var(--r-sm); padding: 7px 14px; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  transition: background .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+.btn-urssaf b { font-weight: 700; }
+.btn-urssaf .urssaf-logo, .btn-urssaf .urssaf-ext { flex-shrink: 0; }
+.btn-urssaf .urssaf-ext { opacity: .55; }
+.btn-urssaf:hover { background: #eef4fc; border-color: #1A428A; box-shadow: 0 3px 12px rgba(26,66,138,.18); }
+.btn-urssaf:hover .urssaf-ext { opacity: 1; }
+.btn-urssaf:active { background: #dfeafa; }
 .btn-danger { background: #fff; border-color: #f0c2cb; color: var(--red); }
 .btn-danger:hover { background: var(--red-soft); }
 /* Bouton "action magique" (générer un mail IA) : accent corail */
@@ -244,8 +376,8 @@ body.readonly #btnSave { opacity: .45; cursor: not-allowed; }
 .pj-btn { display: inline-flex; align-items: center; justify-content: center; }
 .pj-btn .ic { vertical-align: 0; }
 
-input, select, textarea { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 11px; font-size: 13px; font-family: inherit; }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
+input, select, textarea { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 9px 12px; font-size: 13px; font-family: inherit; transition: border-color .14s, box-shadow .14s; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3.5px rgba(79,70,229,.16); }
 select { cursor: pointer; }
 .input { width: 100%; }
 
@@ -264,20 +396,74 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .panel.dragging { transition: none; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .panel.active, .panel.active.slide-next, .panel.active.slide-prev { animation: none; } }
 
+/* ---- Entrée en cascade des blocs d'un onglet ----
+   Les premiers éléments montent légèrement, décalés de 40 ms chacun. Uniquement
+   sur les 6 premiers : au-delà, l'attente cumulée se verrait. Purement visuel,
+   `both` garantit qu'aucun bloc ne reste invisible si l'animation ne joue pas. */
+.panel.active > .kpi-grid > *,
+.panel.active > .cockpit-grid > *,
+.panel.active > .card,
+.panel.active > .card-grid,
+.panel.active > .subpanel.active > .kpi-grid > *,
+.panel.active > .subpanel.active > .card,
+.panel.active > .subpanel.active > .card-grid {
+  animation: riseIn .42s cubic-bezier(.32,.72,0,1) both;
+}
+@keyframes riseIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.panel.active > .kpi-grid > :nth-child(1),
+.panel.active > .subpanel.active > .kpi-grid > :nth-child(1) { animation-delay: .02s; }
+.panel.active > .kpi-grid > :nth-child(2),
+.panel.active > .subpanel.active > .kpi-grid > :nth-child(2) { animation-delay: .06s; }
+.panel.active > .kpi-grid > :nth-child(3),
+.panel.active > .subpanel.active > .kpi-grid > :nth-child(3) { animation-delay: .10s; }
+.panel.active > .kpi-grid > :nth-child(4),
+.panel.active > .subpanel.active > .kpi-grid > :nth-child(4) { animation-delay: .14s; }
+.panel.active > .kpi-grid > :nth-child(n+5),
+.panel.active > .subpanel.active > .kpi-grid > :nth-child(n+5) { animation-delay: .18s; }
+.panel.active > .cockpit-grid > :nth-child(2) { animation-delay: .06s; }
+.panel.active > .cockpit-grid > :nth-child(3) { animation-delay: .10s; }
+.panel.active > .cockpit-grid > :nth-child(4) { animation-delay: .14s; }
+@media (prefers-reduced-motion: reduce) {
+  .panel.active > .kpi-grid > *,
+  .panel.active > .cockpit-grid > *,
+  .panel.active > .card,
+  .panel.active > .card-grid,
+  .panel.active > .subpanel.active > .kpi-grid > *,
+  .panel.active > .subpanel.active > .card,
+  .panel.active > .subpanel.active > .card-grid { animation: none; }
+}
+
 /* ===================== KPI ===================== */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); gap: 13px; margin-bottom: 20px; }
-.kpi { position: relative; background: var(--surface); border: 1px solid var(--border-strong); border-left: 4px solid var(--soft); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow-soft); transition: transform .14s ease, box-shadow .14s ease; }
-.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.kpi {
+  position: relative; overflow: hidden;
+  background: var(--card-bg); border: 1px solid var(--card-border); border-left: 4px solid var(--soft);
+  border-radius: var(--r-lg); padding: 18px 20px;
+  box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-soft);
+  transition: transform .22s cubic-bezier(.32,.72,0,1), box-shadow .22s ease;
+}
+.kpi:hover { transform: translateY(-3px); box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-card); }
+/* Reflet oblique très faible, comme la lumière rasante sur une plaque de verre. */
+.kpi::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 34%);
+}
+:root[data-theme="dark"] .kpi::after { background: linear-gradient(115deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 34%); }
 /* Voile de teinte sémantique en haut de la carte (très léger) */
-.kpi.green { border-left-color: var(--green); background: linear-gradient(180deg, rgba(14,163,113,.06), transparent 42%), var(--surface); }
-.kpi.amber { border-left-color: var(--amber); background: linear-gradient(180deg, rgba(194,116,10,.06), transparent 42%), var(--surface); }
-.kpi.red { border-left-color: var(--red); background: linear-gradient(180deg, rgba(220,38,38,.06), transparent 42%), var(--surface); }
-.kpi.blue { border-left-color: var(--blue); background: linear-gradient(180deg, rgba(99,102,241,.06), transparent 42%), var(--surface); }
-.kpi.indigo { border-left-color: var(--accent); background: linear-gradient(180deg, rgba(79,70,229,.07), transparent 42%), var(--surface); }
+/* Teinte sémantique posée SUR le verre (et non sur un aplat opaque), sinon la carte
+   colorée perdrait la translucidité de toutes les autres. */
+.kpi.green { border-left-color: var(--green); background: linear-gradient(180deg, rgba(14,163,113,.10), transparent 46%), var(--card-bg); }
+.kpi.amber { border-left-color: var(--amber); background: linear-gradient(180deg, rgba(194,116,10,.10), transparent 46%), var(--card-bg); }
+.kpi.red { border-left-color: var(--red); background: linear-gradient(180deg, rgba(220,38,38,.10), transparent 46%), var(--card-bg); }
+.kpi.blue { border-left-color: var(--blue); background: linear-gradient(180deg, rgba(99,102,241,.10), transparent 46%), var(--card-bg); }
+.kpi.indigo { border-left-color: var(--accent); background: linear-gradient(180deg, rgba(79,70,229,.11), transparent 46%), var(--card-bg); }
 .kpi.indigo .value { color: var(--accent); }
-.kpi .label { font-size: 11px; color: var(--soft); margin-bottom: 9px; text-transform: uppercase; letter-spacing: .7px; font-weight: 700; }
-.kpi .value { font-family: var(--serif); font-size: 27px; font-weight: 600; color: var(--ink); letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
-.kpi .hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+/* Étiquette : petite capitale très espacée — elle doit se lire comme une légende,
+   pas concurrencer le chiffre. */
+.kpi .label { font-size: 10.5px; color: var(--soft); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1.1px; font-weight: 700; }
+/* Chiffre : c'est LUI le sujet de la carte. Plus grand, plus serré. */
+.kpi .value { font-family: var(--serif); font-size: 33px; line-height: 1.05; font-weight: 600; color: var(--ink); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.kpi .hint { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
 .kpi.green .value { color: var(--green); }
 .kpi.amber .value { color: var(--amber); }
 .kpi.red .value { color: var(--red); }
@@ -286,9 +472,16 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .kpi .value.neg { color: var(--red); }
 
 /* ===================== CARDS ===================== */
-.card { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; padding: 18px 20px; margin-bottom: 17px; box-shadow: var(--shadow-card); transition: box-shadow .16s ease, border-color .16s ease; }
+/* Carte de verre : voile dense + bord clair qui capte la lumière + filet de crête,
+   et un liseré extérieur très fin qui la détache du fond coloré. */
+.card {
+  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg);
+  padding: 20px 22px; margin-bottom: 17px;
+  box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-card);
+  transition: box-shadow .22s ease, transform .22s cubic-bezier(.32,.72,0,1);
+}
 .cockpit-grid .card:hover { box-shadow: 0 1px 2px rgba(27,23,51,.05), 0 14px 32px rgba(27,23,51,.09); border-color: var(--border); }
-.card h3 { font-family: var(--serif); margin: 0 0 4px; font-size: 17px; color: var(--ink); font-weight: 600; letter-spacing: -.2px; display: flex; align-items: center; gap: 10px; }
+.card h3 { font-family: var(--serif); margin: 0 0 5px; font-size: 17px; color: var(--ink); font-weight: 600; letter-spacing: -.35px; display: flex; align-items: center; gap: 10px; }
 /* Barre d'accent verticale : signature de section (corail en dégradé) */
 .card h3::before { content: ''; width: 4px; height: 16px; border-radius: 3px; background: linear-gradient(180deg, var(--coral) 0%, var(--coral-strong) 100%); flex-shrink: 0; }
 .card .card-sub { margin: 0 0 15px; font-size: 12px; color: var(--soft); }
@@ -298,14 +491,17 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 
 /* ===================== URSSAF TRIMESTRES ===================== */
 .qgrid { display: grid; grid-template-columns: repeat(4, 1fr) 1.25fr; gap: 11px; }
-.qcell { border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; background: var(--surface-2); }
-.qcell.total { background: var(--ink); border-color: var(--ink); }
-.qcell .qt { font-size: 11px; color: var(--soft); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-.qcell .qv { font-family: var(--serif); font-size: 20px; font-weight: 600; color: var(--ink); margin-top: 5px; font-variant-numeric: tabular-nums; }
+.qcell { border: 1px solid var(--card-border); border-radius: var(--r-md); padding: 14px 15px; background: var(--card-bg-2); box-shadow: var(--card-shine); transition: transform .2s cubic-bezier(.32,.72,0,1); }
+.qcell:hover { transform: translateY(-2px); }
+/* Case « Total » : indigo dense plutôt qu'un aplat noir. Elle doit trancher avec
+   les trimestres sans casser la translucidité générale. */
+.qcell.total { background: linear-gradient(160deg, rgba(79,70,229,.95) 0%, rgba(67,56,202,.92) 100%); border-color: rgba(255,255,255,.35); box-shadow: var(--card-shine), 0 6px 20px rgba(79,70,229,.28); }
+.qcell .qt { font-size: 10.5px; color: var(--soft); font-weight: 700; text-transform: uppercase; letter-spacing: 1.1px; }
+.qcell .qv { font-family: var(--serif); font-size: 23px; font-weight: 600; color: var(--ink); margin-top: 6px; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
 .qcell .qd { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.qcell.total .qt { color: #a39ed0; }
+.qcell.total .qt { color: rgba(255,255,255,.72); }
 .qcell.total .qv { color: #fff; }
-.qcell.total .qd { color: #c7c2e8; }
+.qcell.total .qd { color: rgba(255,255,255,.8); }
 @media (max-width: 760px) { .qgrid { grid-template-columns: 1fr 1fr; } }
 
 /* Echeancier des prelevements URSSAF */
@@ -319,13 +515,21 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .sd-tag { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .4px; background: var(--amber-soft); color: var(--amber); }
 .sd-tag.past { background: var(--surface-2); color: var(--soft); }
 .sd-row.a-venir { background: linear-gradient(90deg, rgba(151,103,15,.05), transparent); }
-@media (max-width: 700px) { .sd-row { grid-template-columns: 1fr auto; } .sd-row .sd-src { display: none; } }
+/* Petit écran : la ligne passe sur deux niveaux plutôt que de masquer la source
+   du prélèvement — parité totale avec le PC, rien n'est retiré au téléphone. */
+@media (max-width: 700px) {
+  .sd-row { grid-template-columns: 1fr auto; row-gap: 2px; }
+  .sd-row .sd-date { grid-column: 1; }
+  .sd-row .sd-src { grid-column: 1; font-size: 11.5px; }
+  .sd-row .sd-amt { grid-column: 2; grid-row: 1; }
+  .sd-row .sd-tag { grid-column: 2; grid-row: 2; justify-self: end; }
+}
 
 /* ===================== FORECAST / BONUS ===================== */
 .forecast { display: grid; grid-template-columns: repeat(auto-fit, minmax(186px, 1fr)); gap: 12px; }
-.fc { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 15px; }
-.fc .t { font-size: 11px; color: var(--soft); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
-.fc .v { font-family: var(--serif); font-size: 20px; font-weight: 600; color: var(--ink); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.fc { background: var(--card-bg-2); border: 1px solid var(--card-border); border-radius: var(--r-md); padding: 15px 16px; box-shadow: var(--card-shine); }
+.fc .t { font-size: 10.5px; color: var(--soft); text-transform: uppercase; letter-spacing: 1.1px; font-weight: 700; }
+.fc .v { font-family: var(--serif); font-size: 23px; font-weight: 600; color: var(--ink); margin-top: 6px; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
 .fc .d { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
 .bonus .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
@@ -347,10 +551,11 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .toolbar .summary { font-size: 12.5px; color: var(--muted); }
 #searchInput { min-width: 220px; flex: 0 1 270px; }
 
-.table-wrap { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-card); }
+.table-wrap { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-card); }
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { padding: 11px 15px; text-align: left; border-bottom: 1px solid var(--border); }
-.table thead th { font-size: 11px; color: var(--soft); cursor: pointer; user-select: none; white-space: nowrap; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; background: var(--surface-2); }
+/* En-tête de tableau : voile translucide + effet « collé en haut » au défilement. */
+.table thead th { position: sticky; top: 0; z-index: 1; font-size: 10.5px; color: var(--soft); cursor: pointer; user-select: none; white-space: nowrap; text-transform: uppercase; letter-spacing: .8px; font-weight: 700; background: var(--card-bg-2); -webkit-backdrop-filter: saturate(160%) blur(12px); backdrop-filter: saturate(160%) blur(12px); box-shadow: inset 0 -1px 0 var(--border); }
 .table thead th:hover { color: var(--ink); }
 .table th.num, .table td.num { text-align: right; }
 .table tbody tr:last-child td { border-bottom: none; }
@@ -366,7 +571,7 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .badge.retard { color: var(--red); }
 .badge.prevu { color: var(--blue); }
 
-.mini-btn { background: var(--surface); border: 1px solid var(--border-strong); color: var(--muted); padding: 4px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; font-family: inherit; }
+.mini-btn { background: var(--surface); border: 1px solid var(--border-strong); color: var(--muted); padding: 4px 10px; border-radius: var(--r-xs); cursor: pointer; font-size: 12px; font-family: inherit; }
 .mini-btn:hover { color: var(--ink); border-color: var(--soft); }
 .mini-btn.go-green:hover { color: var(--green); border-color: var(--green); background: var(--green-soft); }
 
@@ -385,11 +590,25 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .fiscal-table .deadline.urgent { color: var(--red); font-weight: 600; }
 .chk { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
 
-.alert { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border-radius: 10px; font-size: 13px; margin-top: 4px; }
+.alert { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border-radius: var(--r-sm); font-size: 13px; margin-top: 4px; }
 .alert .ai { font-family: var(--serif); font-size: 18px; line-height: 1; margin-top: 1px; }
-.alert.ok { background: var(--green-soft); color: #14533a; }
-.alert.warn { background: var(--amber-soft); color: #7d5409; }
-.alert.danger { background: var(--red-soft); color: #8c2c22; }
+.alert.ok { background: var(--green-soft); color: #14533a; border: 1px solid rgba(14,163,113,.22); }
+.alert.warn { background: var(--amber-soft); color: #7d5409; border: 1px solid rgba(194,116,10,.22); }
+.alert.danger { background: var(--red-soft); color: #8c2c22; border: 1px solid rgba(220,38,38,.22); }
+/* En thème sombre, `--*-soft` devient une teinte FONCÉE : les couleurs de texte
+   codées en dur ci-dessus (vert/ambre/rouge sombres) devenaient illisibles sur
+   ce fond. On repasse sur les couleurs vives du thème, prévues pour fond foncé. */
+:root[data-theme="dark"] .alert.ok { color: var(--green); }
+:root[data-theme="dark"] .alert.warn { color: var(--amber); }
+:root[data-theme="dark"] .alert.danger { color: var(--red); }
+:root[data-theme="dark"] .alert b { color: var(--ink); }
+/* Mêmes cas ailleurs : ces couleurs sombres sont posées sur des fonds `*-soft`
+   qui s'assombrissent aussi en thème sombre. */
+:root[data-theme="dark"] .stpill.attente { color: var(--amber); }
+:root[data-theme="dark"] .agenda-offline { color: var(--amber); border-color: rgba(251,191,36,.28); }
+:root[data-theme="dark"] .agenda-offline b { color: var(--ink); }
+:root[data-theme="dark"] .dlg-ic-warning { background: var(--amber-soft); color: var(--amber); }
+:root[data-theme="dark"] #ddBanner { background: linear-gradient(90deg, var(--coral-soft) 0%, var(--amber-soft) 100%); }
 
 /* Carte « À déclarer à l'URSSAF » (aide à la déclaration trimestrielle) */
 .urssaf-now { border-left: 4px solid var(--accent); background: linear-gradient(180deg, rgba(79,70,229,.05), transparent 38%), var(--surface); }
@@ -420,8 +639,37 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .field.full { grid-column: 1 / -1; }
 .field label { font-size: 12.5px; font-weight: 600; color: var(--ink); }
 .field small { color: var(--muted); font-size: 11px; }
-.field .check { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.field .check input { width: auto; }
+.field .check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+/* Interrupteur façon iOS. C'est toujours une <input type="checkbox"> native — on
+   ne fait que la redessiner, donc le clic, le clavier et le libellé associé
+   continuent de fonctionner exactement pareil. */
+.field .check input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  flex: 0 0 auto; width: 42px; height: 25px; margin: 0; padding: 0;
+  border-radius: var(--r-pill); border: 1px solid var(--border-strong);
+  background: var(--surface-2); cursor: pointer; position: relative;
+  transition: background .2s ease, border-color .2s ease;
+}
+.field .check input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 19px; height: 19px;
+  border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(27,23,51,.3);
+  transition: transform .2s cubic-bezier(.32,.72,0,1);
+}
+.field .check input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  border-color: var(--accent-strong);
+}
+.field .check input[type="checkbox"]:checked::after { transform: translateX(17px); }
+.field .check input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3.5px rgba(79,70,229,.22); }
+@media (prefers-reduced-motion: reduce) {
+  .field .check input[type="checkbox"], .field .check input[type="checkbox"]::after { transition: none; }
+}
+/* Une colonne qui ne contient qu'un interrupteur n'a pas de libellé au-dessus :
+   sans ça elle se calait en haut de la rangée, désalignée de ses voisines. */
+.field-row .field:has(> .check:only-child) { justify-content: flex-end; flex: 0 0 auto; }
+/* …et son libellé ne doit pas se casser en deux lignes quand la fenêtre rétrécit. */
+.field-row .field > .check:only-child { white-space: nowrap; }
 .muted { color: var(--muted); }
 .field-row { display: flex; gap: 12px; }
 .field-row .field { flex: 1; }
@@ -434,11 +682,25 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .rate-input { width: 100%; text-align: center; padding: 6px 4px; }
 
 /* ===================== MODAL ===================== */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(27,23,51,.46); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 50; padding: 20px; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px 26px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(27,23,51,.30); }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(20,17,38,.42); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: grid; place-items: center; z-index: 50; padding: 20px; }
+/* Modale en verre : le fond flouté transparaît sur les bords, comme une feuille iOS. */
+.modal {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border); border-radius: var(--r-xl);
+  padding: 26px 28px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto;
+  box-shadow: var(--glass-shine), 0 24px 64px rgba(27,23,51,.32);
+  animation: modalIn .2s cubic-bezier(.32,.72,0,1);
+}
+@keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .modal { animation: none; } }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .modal { background: var(--surface); }
+}
 .modal h2 { font-family: var(--serif); margin: 0 0 18px; font-size: 21px; color: var(--ink); font-weight: 600; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.suivi { border: 1px solid var(--border); border-radius: 10px; padding: 15px 17px; margin-top: 15px; background: var(--surface-2); }
+.suivi { border: 1px solid var(--card-border); border-radius: var(--r-md); padding: 16px 18px; margin-top: 15px; background: var(--card-bg-2); box-shadow: var(--card-shine); }
 .suivi legend { padding: 0 8px; color: var(--muted); font-size: 11.5px; font-weight: 600; }
 .modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
 /* Mobile : les boutons d'action débordaient (« Fermer » coupé). On masque l'espaceur
@@ -450,7 +712,7 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 }
 
 /* ===================== PIECE JOINTE (lecture PDF) ===================== */
-.pj-zone { border: 1px dashed var(--border-strong); border-radius: 11px; padding: 13px 15px; margin-bottom: 16px; background: var(--accent-soft); }
+.pj-zone { border: 1px dashed var(--border-strong); border-radius: var(--r-sm); padding: 13px 15px; margin-bottom: 16px; background: var(--accent-soft); }
 .pj-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pj-hint { font-size: 11.5px; color: var(--muted); flex: 1; min-width: 180px; }
 .btn-ghost { background: var(--surface); border: 1px solid var(--accent); color: var(--accent); font-weight: 600; }
@@ -462,10 +724,26 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .pj-btn:hover { border-color: var(--accent); background: var(--green-soft); }
 
 /* ===================== SOUS-ONGLETS (Compta) ===================== */
-.subtabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
-.subtab { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--muted); padding: 9px 16px; cursor: pointer; font-size: 13.5px; font-weight: 500; font-family: inherit; margin-bottom: -1px; }
+/* Segmented control : un rail translucide, la sélection est une pastille blanche
+   surélevée qui glisse — au lieu du soulignement. */
+.subtabs {
+  display: inline-flex; gap: 3px; margin-bottom: 20px; padding: 4px;
+  background: rgba(27,23,51,.05); border: 1px solid var(--border);
+  border-radius: var(--r-pill); max-width: 100%;
+}
+:root[data-theme="dark"] .subtabs { background: rgba(255,255,255,.05); }
+.subtab {
+  background: transparent; border: none; color: var(--muted);
+  padding: 8px 18px; cursor: pointer; font-size: 13.5px; font-weight: 600; font-family: inherit;
+  border-radius: var(--r-pill); white-space: nowrap;
+  transition: color .16s ease, background .16s ease, box-shadow .16s ease;
+}
 .subtab:hover { color: var(--ink); }
-.subtab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.subtab.active {
+  color: var(--accent); font-weight: 700;
+  background: var(--surface);
+  box-shadow: var(--glass-shine), 0 1px 3px rgba(27,23,51,.12), 0 4px 12px rgba(79,70,229,.10);
+}
 .subpanel { display: none; }
 .subpanel.active { display: block; }
 
@@ -545,38 +823,97 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 
 /* ===================== AGENDA (vue mois) ===================== */
 .agenda-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
-.agenda-head h2 { font-family: var(--serif); font-size: 22px; color: var(--ink); margin: 0; font-weight: 600; letter-spacing: -.3px; }
-.agenda-nav { display: flex; gap: 8px; }
-.agenda-empty { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-card); padding: 46px; text-align: center; color: var(--muted); }
-.cal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-card); overflow: hidden; }
-.cal-head { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--surface-2); border-bottom: 1px solid var(--border); }
-.cal-hd { padding: 8px 10px; font-size: 11px; font-weight: 600; color: var(--soft); text-transform: uppercase; letter-spacing: .5px; text-align: left; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(96px, 1fr); }
-.cal-cell { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 7px; min-height: 96px; overflow: hidden; }
+.agenda-head h2 { font-family: var(--serif); font-size: 24px; color: var(--ink); margin: 0; font-weight: 600; letter-spacing: -.6px; }
+/* Navigation du mois : « ‹ Aujourd'hui › » soudés en un seul bloc de verre, et
+   « + Événement » détaché — la hiérarchie des actions devient lisible. */
+.agenda-nav { display: flex; gap: 10px; align-items: center; }
+.agenda-nav-group {
+  display: inline-flex; align-items: center; padding: 3px;
+  background: rgba(27,23,51,.05); border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+}
+:root[data-theme="dark"] .agenda-nav-group { background: rgba(255,255,255,.05); }
+.agenda-nav-group .btn {
+  border: none; background: transparent; box-shadow: none;
+  border-radius: var(--r-pill); padding: 6px 14px; font-weight: 600; color: var(--muted);
+}
+.agenda-nav-group .btn:hover { background: var(--surface); color: var(--accent); box-shadow: var(--card-shine), 0 1px 3px rgba(27,23,51,.10); }
+.agenda-nav-group .btn:first-child, .agenda-nav-group .btn:last-child { padding: 6px 12px; font-size: 16px; line-height: 1; }
+
+.agenda-empty { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-card); padding: 54px 32px; text-align: center; color: var(--muted); }
+.ag-empty-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; margin-bottom: 16px; border-radius: var(--r-lg);
+  color: var(--accent); background: var(--accent-soft);
+  box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring);
+}
+.ag-empty-t { font-family: var(--serif); font-size: 17px; font-weight: 600; color: var(--ink); letter-spacing: -.3px; }
+.ag-empty-s { max-width: 380px; margin: 7px auto 18px; font-size: 13px; line-height: 1.55; color: var(--soft); }
+.cal { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-card); overflow: hidden; }
+/* En-tête des jours : bandeau de verre collé en haut, capitales espacées. */
+.cal-head {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  background: var(--card-bg-2); border-bottom: 1px solid var(--border);
+  -webkit-backdrop-filter: saturate(160%) blur(12px); backdrop-filter: saturate(160%) blur(12px);
+}
+.cal-hd { padding: 10px 12px; font-size: 10.5px; font-weight: 700; color: var(--soft); text-transform: uppercase; letter-spacing: 1.1px; text-align: left; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(104px, 1fr); }
+/* Séparateurs en filet très fin : la grille structure sans quadriller lourdement. */
+.cal-cell {
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 7px 8px; min-height: 104px; overflow: hidden; position: relative;
+  transition: background .15s ease;
+}
 .cal-cell:nth-child(7n) { border-right: none; }
-.cal-cell.out { background: #f6f5fc; }
-.cal-cell.out .cal-num { color: var(--soft); }
-.cal-cell.today { background: var(--coral-soft); box-shadow: inset 0 0 0 2px var(--coral); }
-.cal-num { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
-.cal-cell.today .cal-num { color: var(--coral-strong); }
-.cal-ev { font-size: 11px; line-height: 1.35; color: var(--ink); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cal-ev .cal-h { color: var(--accent); font-weight: 600; }
-.cal-ev { cursor: pointer; transition: box-shadow .12s; }
-.cal-ev:hover { box-shadow: inset 0 0 0 1.5px rgba(27,23,51,.28); }
+.cal-cell.has:hover { background: rgba(79,70,229,.05); }
+/* Week-ends : teinte neutre à peine perceptible, pour lire la semaine d'un coup. */
+.cal-cell.we { background: rgba(27,23,51,.022); }
+:root[data-theme="dark"] .cal-cell.we { background: rgba(255,255,255,.02); }
+.cal-cell.out { background: rgba(27,23,51,.035); }
+.cal-cell.out .cal-num { color: var(--soft); opacity: .75; }
+/* Aujourd'hui : pastille pleine sur le numéro (repère net) plutôt qu'un aplat
+   coloré sur toute la case, qui écrasait les événements qu'elle contient. */
+.cal-cell.today { background: rgba(79,70,229,.055); }
+.cal-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 25px; height: 25px; padding: 0 6px; margin-bottom: 5px;
+  border-radius: var(--r-pill);
+  font-size: 12.5px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.cal-cell.today .cal-num {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #fff; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(79,70,229,.4);
+}
+/* Pastille d'événement : plus haute, coins doux, l'heure en gras devant le titre.
+   Le fond et le liseré colorés viennent de la couleur Google Agenda (posés en
+   `style=` par le JS) — on ne fixe ici que la forme et le comportement. */
+.cal-ev {
+  font-size: 11px; line-height: 1.4; color: var(--ink);
+  border-radius: 7px; padding: 3px 7px; margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; font-weight: 500;
+  transition: transform .14s cubic-bezier(.32,.72,0,1), box-shadow .14s ease;
+}
+.cal-ev .cal-h { font-weight: 700; font-variant-numeric: tabular-nums; }
+.cal-ev:hover { transform: translateX(2px); box-shadow: 0 2px 8px rgba(27,23,51,.16); }
 .cal-cell.has { cursor: pointer; }
-.cal-more { font-size: 10.5px; color: var(--accent); font-weight: 600; padding-left: 4px; cursor: pointer; }
+.cal-more { font-size: 10.5px; color: var(--accent); font-weight: 700; padding-left: 5px; margin-top: 1px; cursor: pointer; }
+.cal-more:hover { text-decoration: underline; }
 
 /* ----- Modale détail d'un événement Google ----- */
 .ev-modal { max-width: 460px; }
 .ev-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .ev-head h2 { font-family: var(--serif); font-size: 20px; color: var(--ink); margin: 0; font-weight: 600; flex: 1; letter-spacing: -.2px; }
-.ev-x { background: transparent; border: none; color: var(--soft); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 7px; line-height: 1; }
+.ev-x { background: transparent; border: none; color: var(--soft); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: var(--r-xs); line-height: 1; }
 .ev-x:hover { color: var(--ink); background: var(--surface-2); }
 .ev-meta { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--text); padding: 6px 0; }
-.ev-meta .ev-ic { font-size: 14px; line-height: 1.4; flex-shrink: 0; }
-.ev-desc { margin-top: 10px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; color: var(--text); white-space: pre-wrap; line-height: 1.5; max-height: 240px; overflow-y: auto; }
+/* Porte-icône : le SVG est aligné sur la première ligne de texte et prend la
+   couleur d'accent, comme les autres icônes au trait de l'app. */
+.ev-meta .ev-ic { display: inline-flex; align-items: center; flex-shrink: 0; color: var(--accent); margin-top: 2px; }
+.ev-desc { margin-top: 10px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); font-size: 13px; color: var(--text); white-space: pre-wrap; line-height: 1.5; max-height: 240px; overflow-y: auto; }
 .ev-list { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
-.ev-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 11px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+.ev-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 11px; border-radius: var(--r-sm); cursor: pointer; border: 1px solid transparent; }
 .ev-item:hover { background: var(--surface-2); border-color: var(--border); }
 .ev-item-time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); min-width: 56px; font-size: 13px; padding-top: 1px; }
 .ev-item-main { flex: 1; min-width: 0; }
@@ -606,17 +943,18 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 
 /* ----- Mini date-picker maison (esprit Indigo & Corail) ----- */
 .dp { position: relative; }
-.dp-field { width: 100%; text-align: left; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 12px; font-size: 13px; font-family: inherit; cursor: pointer; text-transform: capitalize; transition: border-color .12s, box-shadow .12s; }
+.dp-field { width: 100%; text-align: left; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 8px 12px; font-size: 13px; font-family: inherit; cursor: pointer; text-transform: capitalize; transition: border-color .12s, box-shadow .12s; }
 .dp-field:hover { border-color: var(--soft); }
 .dp-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
-.dp-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; width: 270px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-card); padding: 12px; }
+.dp-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; width: 270px; background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: var(--r-lg); box-shadow: var(--glass-shine), var(--glass-shadow); padding: 13px; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .dp-pop { background: var(--surface); } }
 .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .dp-title { font-family: var(--serif); font-size: 14px; font-weight: 600; color: var(--ink); text-transform: capitalize; }
-.dp-nav { background: transparent; border: none; color: var(--muted); font-size: 17px; line-height: 1; cursor: pointer; padding: 2px 9px; border-radius: 7px; }
+.dp-nav { background: transparent; border: none; color: var(--muted); font-size: 17px; line-height: 1; cursor: pointer; padding: 2px 9px; border-radius: var(--r-xs); }
 .dp-nav:hover { color: var(--accent); background: var(--accent-soft); }
 .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .dp-hd { text-align: center; font-size: 10px; font-weight: 700; color: var(--soft); text-transform: uppercase; padding-bottom: 4px; }
-.dp-day { aspect-ratio: 1; border: none; background: transparent; color: var(--text); font-family: inherit; font-size: 12.5px; font-variant-numeric: tabular-nums; border-radius: 8px; cursor: pointer; transition: background .1s; }
+.dp-day { aspect-ratio: 1; border: none; background: transparent; color: var(--text); font-family: inherit; font-size: 12.5px; font-variant-numeric: tabular-nums; border-radius: var(--r-xs); cursor: pointer; transition: background .1s; }
 .dp-day:hover { background: var(--accent-soft); color: var(--accent); }
 .dp-day.out { color: var(--soft); }
 .dp-day.today { box-shadow: inset 0 0 0 1.5px var(--coral); color: var(--coral-strong); font-weight: 700; }
@@ -629,7 +967,7 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .dp-foot { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); text-align: center; }
 
 /* ----- Bandeau hors connexion (cache) ----- */
-.agenda-offline { display: flex; align-items: center; gap: 12px; padding: 11px 15px; margin-bottom: 14px; border-radius: 11px; background: var(--amber-soft); border: 1px solid #f0d9b0; color: #7d5409; font-size: 13px; }
+.agenda-offline { display: flex; align-items: center; gap: 12px; padding: 11px 15px; margin-bottom: 14px; border-radius: var(--r-sm); background: var(--amber-soft); border: 1px solid #f0d9b0; color: #7d5409; font-size: 13px; }
 .agenda-offline .ao-ic { font-size: 16px; line-height: 1; }
 .agenda-offline > div { flex: 1; }
 .agenda-offline .lnk { color: var(--amber); white-space: nowrap; }
@@ -659,19 +997,19 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .ai-new { width: 100%; }
 .ai-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 .ai-empty-list { color: var(--soft); font-size: 12px; padding: 8px 4px; }
-.ai-conv { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
+.ai-conv { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border-radius: var(--r-sm); cursor: pointer; border: 1px solid transparent; }
 .ai-conv:hover { background: var(--surface-2); }
 .ai-conv.active { background: var(--surface); border-color: var(--border-strong); box-shadow: var(--shadow-soft); }
 .ai-conv-title { flex: 1; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-conv-del { background: none; border: none; color: var(--soft); cursor: pointer; font-size: 12px; padding: 0 3px; border-radius: 5px; line-height: 1; opacity: 0; }
 .ai-conv:hover .ai-conv-del { opacity: 1; }
 .ai-conv-del:hover { color: var(--red); }
-.ai-main { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-card); overflow: hidden; }
+.ai-main { display: flex; flex-direction: column; min-height: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--shadow-card); overflow: hidden; }
 .ai-messages { flex: 1; overflow-y: auto; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
 .ai-welcome { margin: auto; text-align: center; color: var(--ink); font-size: 14px; line-height: 1.6; }
 .ai-msg { display: flex; }
 .ai-msg.ai-me { justify-content: flex-end; }
-.ai-bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.ai-bubble { max-width: 80%; padding: 10px 14px; border-radius: var(--r-md); font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 .ai-me .ai-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
 .ai-bot .ai-bubble { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 .ai-typing { color: var(--soft); letter-spacing: 2px; }
@@ -690,59 +1028,208 @@ main { flex: 1; overflow-y: auto; padding: 26px; }
 .ai-msg-atts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .ai-me .ai-chip-static { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.35); color: #fff; }
 
-/* ===================== MAILS (Gmail, lecture) ===================== */
-.mail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.mail-folders { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 2px; }
-.mfolder { background: transparent; border: none; color: var(--muted); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; }
-.mfolder:hover { color: var(--ink); }
-.mfolder.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-soft); }
+/* ===================== MAILS (messagerie façon Gmail) ===================== */
+/* Structure : rail de dossiers à gauche (compose + pastilles), colonne de droite
+   avec la barre de recherche, la liste dense et le lecteur. Les couleurs restent
+   celles de Ma Compta (indigo / corail) : c'est l'ERGONOMIE qui est celle de Gmail. */
+/* L'onglet Mails occupe exactement la hauteur disponible : la page elle-même ne
+   défile jamais, seules la liste et le lecteur ont leur propre ascenseur.
+   Chaque niveau porte `min-height: 0` : sans ça, un élément de grille ou de
+   flexbox garde sa hauteur de contenu (min-height: auto), déborde du parent
+   et AUCUN ascenseur n'apparaît. */
+body:has(#tab-mails.active) main { overflow: hidden; display: flex; flex-direction: column; }
+#tab-mails.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.gm { display: grid; grid-template-columns: 218px minmax(0, 1fr); gap: 18px; flex: 1; min-height: 0; }
+.gm-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
+.gm-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
 
-.mail-grid { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; height: calc(100vh - 196px); }
-@media (max-width: 900px) { .mail-grid { grid-template-columns: 1fr; height: auto; } }
-.mail-list { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-card); overflow-y: auto; }
-.mail-reader { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-card); overflow-y: auto; padding: 22px 24px; }
+/* Bouton « Écrire » (pastille surélevée, comme Gmail) */
+.gm-compose {
+  display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
+  padding: 13px 20px 13px 16px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink);
+  font-family: inherit; font-size: 13.5px; font-weight: 700; letter-spacing: -.1px;
+  border-radius: 999px; cursor: pointer; box-shadow: var(--shadow-card);
+  transition: box-shadow .14s ease, transform .14s ease, border-color .14s ease, color .14s ease;
+}
+.gm-compose .ic { color: var(--accent); }
+.gm-compose:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 2px 4px rgba(27,23,51,.06), 0 12px 26px rgba(79,70,229,.16); transform: translateY(-1px); }
+.gm-compose:active { transform: translateY(0); }
+
+/* Dossiers : pastilles pleine largeur, l'actif en indigo doux */
+.gm-folders { display: flex; flex-direction: column; gap: 2px; }
+.mfolder {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: transparent; border: none; color: var(--muted);
+  padding: 0 12px; height: 36px; border-radius: 999px; cursor: pointer;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  transition: background .12s ease, color .12s ease;
+}
+.mfolder .ic { flex-shrink: 0; opacity: .85; }
+.gm-f-lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mfolder:hover { background: var(--surface-2); color: var(--ink); }
+.mfolder.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.mfolder.active .ic { opacity: 1; }
+/* Compteur de non-lus du dossier (comme Gmail : chiffre discret à droite) */
+.gm-f-count { flex-shrink: 0; font-size: 11.5px; font-weight: 700; color: var(--coral-strong); font-variant-numeric: tabular-nums; }
+.gm-f-count.hidden { display: none; }
+
+/* Barre du haut : recherche large + actualiser */
+.gm-topbar { display: flex; align-items: center; gap: 10px; }
+.gm-icobtn {
+  flex-shrink: 0; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  border-radius: 50%; cursor: pointer; transition: color .12s ease, border-color .12s ease, background .12s ease;
+}
+.gm-icobtn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+/* Pagination « 51–100 sur 1 248 · page 2/25 » + flèches (comme Gmail) */
+.gm-pager { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.gm-range { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gm-pages { font-size: 11.5px; color: var(--soft); white-space: nowrap; padding-left: 6px; border-left: 1px solid var(--border); }
+.gm-pg {
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--muted); border-radius: 50%;
+  font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit;
+  transition: color .12s ease, background .12s ease;
+}
+.gm-pg:hover:not(:disabled) { background: var(--surface-2); color: var(--accent); }
+.gm-pg:disabled { color: var(--border-strong); cursor: default; }
+
+.mail-grid { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 14px; flex: 1; min-height: 0; }
+.mail-list { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-card); overflow-y: auto; padding: 5px; min-height: 0; height: 100%; }
+.mail-reader { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring), var(--shadow-card); overflow-y: auto; padding: 24px 26px 30px; min-height: 0; height: 100%; }
+/* Ascenseurs propres à chaque panneau : la place est réservée (pas de saut de
+   mise en page) et le curseur reste visible sur le fond blanc des cartes. */
+.mail-list, .mail-reader { scrollbar-gutter: stable; }
+.mail-list::-webkit-scrollbar-thumb, .mail-reader::-webkit-scrollbar-thumb { background: var(--border-strong); border-color: var(--surface); }
+.mail-list::-webkit-scrollbar-thumb:hover, .mail-reader::-webkit-scrollbar-thumb:hover { background: var(--soft); }
 .mail-empty { color: var(--muted); text-align: center; padding: 46px 20px; font-size: 13px; }
 
-.mitem { position: relative; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; border-left: 3px solid transparent; }
-.mitem-del { position: absolute; top: 8px; right: 8px; border: none; background: transparent; cursor: pointer; font-size: 14px; line-height: 1; padding: 4px 5px; border-radius: 6px; opacity: 0; transition: opacity .12s, background .12s; }
-.mitem:hover .mitem-del { opacity: .55; }
-.mitem-del:hover { opacity: 1; background: var(--red-soft); }
-.mitem:last-child { border-bottom: none; }
+/* ----- Ligne de message : avatar + expéditeur/date + objet + aperçu ----- */
+.mitem {
+  position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr) 24px;
+  gap: 0 11px; align-items: start; padding: 9px 8px 9px 9px;
+  border-radius: var(--r-sm); cursor: pointer;
+  transition: background .12s ease, box-shadow .12s ease;
+}
+.mitem + .mitem { box-shadow: inset 0 1px 0 var(--border); }
+.mitem:hover, .mitem:hover + .mitem { box-shadow: none; }
 .mitem:hover { background: var(--surface-2); }
-.mitem.sel { background: var(--accent-soft); border-left-color: var(--accent); }
+.mitem.sel, .mitem.sel:hover { background: var(--accent-soft); }
+.mitem.sel + .mitem { box-shadow: none; }
+/* Pastille d'initiale, couleur dérivée de l'expéditeur (repère visuel immédiat) */
+.mitem-av {
+  grid-row: span 3; width: 34px; height: 34px; border-radius: 50%; margin-top: 2px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff; letter-spacing: .2px; user-select: none;
+}
 .mitem-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.mitem-who { font-size: 13px; color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mitem-date { font-size: 11px; color: var(--soft); white-space: nowrap; flex-shrink: 0; }
-.mitem-subj { font-size: 12.5px; color: var(--text); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mitem-prev { font-size: 11.5px; color: var(--soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mitem.unread { border-left-color: var(--coral); }
+.mitem-who { font-size: 13px; color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mitem-date { font-size: 11px; color: var(--soft); white-space: nowrap; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.mitem-subj { font-size: 12.5px; color: var(--text); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mitem-prev { font-size: 11.5px; color: var(--soft); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mitem-pj { color: var(--muted); margin-left: 6px; vertical-align: -2px; }
+/* Non lu : fond net, texte gras et point corail — la lecture « saute aux yeux » */
 .mitem.unread .mitem-who, .mitem.unread .mitem-subj { font-weight: 700; color: var(--ink); }
+.mitem.unread .mitem-date { color: var(--coral-strong); font-weight: 700; }
+.mitem.unread .mitem-who::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--coral); margin-right: 7px; vertical-align: 1px;
+}
+/* Colonne d'actions : étoile toujours là, corbeille au survol (place réservée) */
+.mitem-acts { grid-column: 3; grid-row: span 3; display: flex; flex-direction: column; align-items: center; gap: 3px; margin-top: 1px; }
+.mitem-star, .mitem-del {
+  width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; cursor: pointer; font-size: 14px; line-height: 1;
+  padding: 0; border-radius: 50%; color: var(--soft); transition: color .12s ease, background .12s ease;
+}
+.mitem-star { font-size: 15px; opacity: .5; }
+.mitem:hover .mitem-star { opacity: 1; }
+.mitem-star:hover { color: #f5b301; background: var(--surface); }
+.mitem-star.on { opacity: 1; color: #f5b301; }
+.mitem-del { visibility: hidden; }
+.mitem:hover .mitem-del { visibility: visible; }
+.mitem-del:hover { color: var(--red); background: var(--red-soft); }
+.mail-star-btn.on { color: #f5b301; border-color: #f5b301; }
 
-.mail-msg-head { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 16px; }
-.mail-msg-head h2 { font-family: var(--serif); font-size: 19px; color: var(--ink); margin: 0 0 8px; font-weight: 600; letter-spacing: -.2px; }
+/* ----- Lecteur de message ----- */
+.mail-msg-head { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 18px; }
+.mail-msg-head h2 { font-family: var(--serif); font-size: 21px; line-height: 1.3; color: var(--ink); margin: 0 0 14px; font-weight: 600; letter-spacing: -.3px; }
 .mail-msg-meta { font-size: 12.5px; color: var(--text); margin-top: 2px; }
 .mail-body { font-size: 13.5px; line-height: 1.55; color: var(--text); word-break: break-word; }
 .mail-body-text { white-space: pre-wrap; }
 .mail-body img { max-width: 100%; height: auto; }
 .mail-body a { color: var(--accent); }
 .mail-body table { max-width: 100%; }
-.mail-head-actions { display: flex; align-items: center; gap: 10px; }
-/* Barre de recherche des mails (PC uniquement) */
-.mail-search { position: relative; display: inline-flex; align-items: center; }
-.mail-search-ico { position: absolute; left: 10px; font-size: 12px; opacity: .65; pointer-events: none; }
-.mail-search-input { width: 240px; max-width: 42vw; padding: 8px 30px 8px 30px; font-family: inherit; font-size: 13px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; outline: none; transition: border-color .12s ease, box-shadow .12s ease, width .12s ease; }
-.mail-search-input::placeholder { color: var(--soft); }
-.mail-search-input:focus { width: 300px; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface); }
-.mail-search-input::-webkit-search-cancel-button { display: none; }
-.mail-search-clear { position: absolute; right: 6px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 12px; line-height: 1; color: var(--soft); background: none; border: none; border-radius: 6px; cursor: pointer; }
-.mail-search-clear:hover { color: var(--red); background: var(--surface-2); }
-.mail-search-clear.hidden { display: none; }
+/* Bandeau expéditeur : avatar + nom + adresse, date à droite (comme Gmail) */
+.mail-from { display: flex; align-items: center; gap: 12px; }
+.mail-from-av { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; }
+.mail-from-txt { min-width: 0; flex: 1; }
+.mail-from-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.mail-from-mail { font-size: 12px; color: var(--muted); }
+.mail-from-to { font-size: 11.5px; color: var(--soft); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mail-from-date { font-size: 11.5px; color: var(--soft); white-space: nowrap; flex-shrink: 0; align-self: flex-start; padding-top: 3px; }
+/* Actions du lecteur : ronds discrets en haut, pastilles texte en bas */
 .mail-msg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .mail-msg-top h2 { margin: 0; flex: 1; }
-.mail-msg-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.mail-compose-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.mail-msg-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.mail-ico {
+  width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--muted); border-radius: 50%; cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 0; transition: color .12s ease, background .12s ease;
+}
+.mail-ico:hover { background: var(--surface-2); color: var(--accent); }
+.mail-ico.danger:hover { background: var(--red-soft); color: var(--red); }
+.mail-ico.on { color: #f5b301; }
+.mail-foot-actions { display: flex; gap: 10px; margin-top: 22px; }
+.mail-foot-actions .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 18px; font-weight: 600; }
+.mail-foot-actions .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Barre de recherche des mails (PC uniquement) */
+.mail-search { position: relative; display: flex; align-items: center; flex: 1; min-width: 0; }
+.mail-search-ico { position: absolute; left: 14px; color: var(--muted); opacity: .8; pointer-events: none; }
+.mail-search-input {
+  width: 100%; padding: 10px 34px 10px 40px; font-family: inherit; font-size: 13.5px; color: var(--ink);
+  background: var(--surface-2); border: 1px solid transparent; border-radius: 999px; outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.mail-search-input::placeholder { color: var(--soft); }
+.mail-search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface); }
+.mail-search-input::-webkit-search-cancel-button { display: none; }
+.mail-search-clear { position: absolute; right: 9px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 12px; line-height: 1; color: var(--soft); background: none; border: none; border-radius: 50%; cursor: pointer; }
+.mail-search-clear:hover { color: var(--red); background: var(--surface-2); }
+.mail-search-clear.hidden { display: none; }
+/* ----- Fenêtre de composition (façon Gmail) -----
+   La modale garde sa mécanique ; seule la mise en page change : bandeau de titre
+   indigo, champs en lignes avec libellé à gauche, barre d'outils en bas. */
+#mailModal .modal { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.mc-head { display: flex; align-items: center; gap: 12px; padding: 12px 10px 12px 18px; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%); }
+.mc-title { flex: 1; font-family: var(--serif); font-size: 14px; font-weight: 600; color: #fff; letter-spacing: -.1px; }
+.mc-x { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: transparent; border: none; border-radius: 50%; color: rgba(255,255,255,.85); font-size: 14px; line-height: 1; cursor: pointer; transition: background .12s ease, color .12s ease; }
+.mc-x:hover { background: rgba(255,255,255,.18); color: #fff; }
+.mc-form { display: flex; flex-direction: column; padding: 0 18px; overflow-y: auto; }
+/* Ligne de champ : libellé fixe à gauche, saisie sans bordure, filet en bas */
+.mc-form .ev-f { flex-direction: row; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.mc-form .ev-f.hidden { display: none; }
+.mc-lbl { flex: 0 0 42px; color: var(--muted); font-weight: 600; }
+.mc-form .ev-f input { flex: 1; min-width: 0; border: none; background: transparent; padding: 2px 0; box-shadow: none; font-size: 13px; }
+.mc-form .ev-f input:focus { border: none; box-shadow: none; outline: none; }
+.mc-form .mc-body-wrap { padding: 12px 0 0; }
+.mc-form .mc-body-wrap textarea { border: none; background: transparent; padding: 0; font-size: 13.5px; line-height: 1.6; resize: none; min-height: 240px; box-shadow: none; }
+.mc-form .mc-body-wrap textarea:focus { border: none; box-shadow: none; outline: none; }
+.mc-form .mc-attach-list { margin: 0 0 12px; }
+.mail-compose-actions { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; }
+.mail-compose-actions .spacer { flex: 1; }
+.mc-send { border-radius: 999px; padding: 9px 26px; }
+.mail-compose-actions .btn { border-radius: 999px; }
+/* Outils de la barre du bas (trombone, IA, corbeille) */
+.mc-tool { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 10px; background: transparent; border: none; border-radius: 999px; color: var(--muted); font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: color .12s ease, background .12s ease; }
+.mc-tool:hover { background: var(--surface-2); color: var(--accent); }
+.mc-tool-ai:hover { color: var(--coral-strong); background: var(--coral-soft); }
+.mc-tool.danger:hover { color: var(--red); background: var(--red-soft); }
+
 /* Composition : Cc/Cci + pièces jointes */
-.mc-cc-toggle { display: flex; align-items: center; gap: 12px; }
+.mc-cc-toggle { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .mc-cc-toggle input { flex: 1; }
 /* Autocomplétion maison des destinataires (remplace la datalist native) */
 .mc-ac { position: relative; display: block; width: 100%; }
@@ -755,7 +1242,7 @@ button.lnk { background: none; border: none; cursor: pointer; font-family: inher
 .mail-attach-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .mail-att { cursor: pointer; }
 .mail-att:hover { border-color: var(--accent); background: var(--surface); }
-.mc-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px 5px 11px; font-size: 12px; }
+.mc-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-xs); padding: 5px 8px 5px 11px; font-size: 12px; }
 .mc-chip-name { font-weight: 600; color: var(--ink); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-chip-size { color: var(--soft); font-size: 11px; }
 /* Sélecteur d'emojis du composeur (PC uniquement) */
@@ -764,10 +1251,13 @@ button.lnk { background: none; border: none; cursor: pointer; font-family: inher
 .mc-body-wrap textarea { display: block; width: 100%; box-sizing: border-box; }
 /* Réserve la place du bouton emoji (PC uniquement : présent seulement quand le bouton existe). */
 .mc-body-wrap:has(.mc-emoji-btn) textarea { padding-right: 46px; }
-.mc-emoji-btn { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 17px; line-height: 1; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer; box-shadow: var(--shadow-soft); transition: border-color .12s ease, transform .12s ease; }
+.mc-emoji-btn { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 17px; line-height: 1; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-xs); cursor: pointer; box-shadow: var(--shadow-soft); transition: border-color .12s ease, transform .12s ease; }
 .mc-emoji-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
-.mc-emoji-pop { position: absolute; right: 8px; bottom: 44px; z-index: 80; width: 296px; max-height: 232px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-card); }
-.mc-emoji { width: 100%; aspect-ratio: 1; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 19px; line-height: 1; background: none; border: none; border-radius: 7px; cursor: pointer; }
+.mc-emoji-pop { position: absolute; right: 8px; bottom: 44px; z-index: 80; width: 296px; max-width: calc(100% - 16px); max-height: 232px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 10px;
+  background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border); border-radius: var(--r-lg); box-shadow: var(--glass-shine), var(--glass-shadow); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .mc-emoji-pop { background: var(--surface); } }
+.mc-emoji { width: 100%; aspect-ratio: 1; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 19px; line-height: 1; background: none; border: none; border-radius: var(--r-xs); cursor: pointer; }
 .mc-emoji:hover { background: var(--accent-soft); }
 .mc-chip-x { background: none; border: none; color: var(--soft); cursor: pointer; font-size: 12px; padding: 0 2px; border-radius: 5px; line-height: 1; }
 .mc-chip-x:hover { color: var(--red); }
@@ -790,16 +1280,29 @@ button.lnk { background: none; border: none; cursor: pointer; font-family: inher
 .ck-t { font-size: 13.5px; color: var(--ink); font-weight: 500; }
 .ck-s { font-size: 12px; color: var(--muted); margin-top: 1px; }
 .ck-empty { color: var(--muted); font-size: 13px; padding: 12px 0; text-align: center; }
+/* État vide « riche » : pastille d'icône + titre + explication. Discret, mais il
+   dit pourquoi la liste est vide au lieu de laisser un blanc. */
+.ck-empty-rich { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 22px 0 18px; }
+.ck-empty-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; margin-bottom: 7px; border-radius: 50%;
+  color: var(--green); background: var(--green-soft);
+  box-shadow: var(--card-shine), 0 0 0 1px var(--card-ring);
+}
+.ck-empty-rich > span:not(.ck-empty-ic) { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ck-empty-rich small { font-size: 11.5px; color: var(--soft); }
 /* Lignes "événement" de l'agenda du jour : liseré coloré (couleur Google Agenda) */
 .ck-row-ev { padding-left: 11px; border-left: 3px solid var(--evc, var(--accent)); border-radius: 0 8px 8px 0; margin-left: 1px; }
 .ck-row-ev .ck-time { color: var(--evc, var(--accent)); }
 .ck-row-ev + .ck-row-ev { border-top-color: transparent; }
 /* Bandeau "hors connexion" compact pour l'agenda du jour */
-.ck-offline { font-size: 11px; font-weight: 600; color: var(--amber); background: var(--amber-soft); border: 1px solid #f0d9b0; border-radius: 8px; padding: 5px 10px; margin-bottom: 8px; display: inline-block; }
+.ck-offline { font-size: 11px; font-weight: 600; color: var(--amber); background: var(--amber-soft); border: 1px solid #f0d9b0; border-radius: var(--r-xs); padding: 5px 10px; margin-bottom: 8px; display: inline-block; }
 
 /* ===================== PENSE-BÊTE (accueil) ===================== */
 /* Carte "mémo" : teinte papier chaude pour la distinguer des cartes chiffrées. */
-.card-memo { background: linear-gradient(180deg, #fffdf4 0%, var(--surface) 64%); display: flex; flex-direction: column; }
+/* Pense-bête : teinte papier chaude posée SUR le verre (et non un aplat crème
+   opaque, qui cassait la translucidité des autres cartes). */
+.card-memo { background: linear-gradient(180deg, rgba(246,191,38,.13) 0%, transparent 58%), var(--card-bg); display: flex; flex-direction: column; }
 .card-memo h3::before { background: linear-gradient(180deg, #f6bf26 0%, var(--amber) 100%); }
 .note-count { display: inline-flex; align-items: center; justify-content: center; min-width: 19px; height: 19px; padding: 0 6px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-family: var(--sans); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .note-count:empty { display: none; }
@@ -815,7 +1318,7 @@ button.lnk { background: none; border: none; cursor: pointer; font-family: inher
   border-top: 1px solid var(--border); transition: opacity .26s ease, transform .26s ease;
 }
 .note-item:first-child { border-top: none; }
-.note-item:hover { background: rgba(246,191,38,.07); border-radius: 8px; }
+.note-item:hover { background: rgba(246,191,38,.07); border-radius: var(--r-xs); }
 .note-check {
   flex: 0 0 auto; width: 19px; height: 19px; border-radius: 6px;
   border: 2px solid var(--border-strong); background: var(--surface);
@@ -841,13 +1344,22 @@ button.lnk { background: none; border: none; cursor: pointer; font-family: inher
 .modal-lg { max-width: 720px; }
 
 /* ===================== DIALOGUE INTÉGRÉ (remplace les fenêtres natives) ===================== */
-.dlg-backdrop { position: fixed; inset: 0; background: rgba(27,23,51,.46); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 80; padding: 20px; }
+.dlg-backdrop { position: fixed; inset: 0; background: rgba(20,17,38,.42); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: grid; place-items: center; z-index: 80; padding: 20px; }
 .dlg-backdrop.hidden { display: none; }
-.dlg { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(27,23,51,.30); overflow: hidden; animation: dlgIn .14s ease; }
+.dlg {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border); border-radius: var(--r-xl); width: 100%; max-width: 440px;
+  box-shadow: var(--glass-shine), 0 24px 64px rgba(27,23,51,.32); overflow: hidden; animation: dlgIn .18s cubic-bezier(.32,.72,0,1);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dlg { background: var(--surface); }
+}
 @keyframes dlgIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
 .dlg-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px 20px; border-bottom: 1px solid var(--border); }
 .dlg-title { font-weight: 600; font-size: 15px; color: var(--ink); }
-.dlg-x { margin-left: auto; border: none; background: transparent; color: var(--soft); font-size: 15px; cursor: pointer; width: 28px; height: 28px; border-radius: 8px; line-height: 1; }
+.dlg-x { margin-left: auto; border: none; background: transparent; color: var(--soft); font-size: 15px; cursor: pointer; width: 28px; height: 28px; border-radius: var(--r-xs); line-height: 1; }
 .dlg-x:hover { background: var(--surface-2); color: var(--ink); }
 .dlg-body { display: flex; gap: 14px; padding: 18px 20px; }
 .dlg-ic { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 19px; font-family: var(--serif, serif); }
@@ -889,7 +1401,14 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 .lnk:hover { text-decoration: underline; }
 
 /* ===================== TOAST ===================== */
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 10px; box-shadow: 0 10px 28px rgba(27,23,51,.32); z-index: 100; font-size: 13px; }
+/* Toast : pastille de verre sombre, arrondie complètement (esprit « Dynamic Island »). */
+.toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: rgba(27,23,51,.86); -webkit-backdrop-filter: saturate(180%) blur(18px); backdrop-filter: saturate(180%) blur(18px);
+  border: 1px solid rgba(255,255,255,.12); color: #fff; padding: 12px 22px; border-radius: var(--r-pill);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 12px 32px rgba(27,23,51,.36); z-index: 100; font-size: 13px; font-weight: 500;
+  animation: toastIn .26s cubic-bezier(.32,.72,0,1); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.96); } to { opacity: 1; transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
 .toast.err { background: var(--red); }
 
 /* ===================== TRAJETS (frais kilométriques) ===================== */
@@ -897,16 +1416,38 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 .trajet-form .field { margin-bottom: 12px; }
 .trajet-rate { font-size: 12px; margin: 12px 0 0; }
 .trajet-result-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
-.trajet-map-wrap { position: relative; }
-.trajet-map { width: 100%; height: 420px; background: linear-gradient(135deg, #eef1f7 0%, #e6ebf3 100%); }
+/* La carte est le seul bloc « plein bord » de l'app : on l'inscrit dans le rayon
+   de la carte de verre pour qu'aucun angle droit ne dépasse. */
+.trajet-map-wrap { position: relative; border-radius: calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px) 0 0; overflow: hidden; }
+/* Le fond du conteneur doit être PROCHE de la couleur moyenne des tuiles : c'est
+   lui qu'on aperçoit dans les interstices entre tuiles. Un fond trop contrasté
+   dessine un quadrillage (c'était le cas en sombre). */
+.trajet-map { width: 100%; height: 420px; background: #eaeef4; }
+:root[data-theme="dark"] .trajet-map { background: #26282c; }
+/* Touche d'identité : très légère désaturation des tuiles pour qu'elles cessent
+   de concurrencer l'indigo et le corail de l'app, plus un halo indigo sur les
+   bords qui raccorde la carte au reste de l'interface. */
+.trajet-map .leaflet-tile-pane { filter: saturate(.88) contrast(1.02); }
+:root[data-theme="dark"] .trajet-map .leaflet-tile-pane { filter: saturate(.85) brightness(1.06); }
+.trajet-map-wrap::before {
+  content: ''; position: absolute; inset: 0; z-index: 450; pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--card-ring), inset 0 22px 44px -26px rgba(79,70,229,.4), inset 0 -22px 44px -26px rgba(244,63,94,.28);
+}
 /* Léger voile en bas pour fondre la carte vers la zone résultat */
 .trajet-map-wrap::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 38px; pointer-events: none;
   background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.16) 100%); z-index: 401; }
 /* Légende flottante (verre dépoli) */
-.trajet-legend { position: absolute; top: 12px; left: 12px; z-index: 500; display: flex; gap: 14px;
-  background: rgba(255,255,255,.86); backdrop-filter: blur(8px); border: 1px solid var(--border);
-  border-radius: 11px; padding: 7px 12px; box-shadow: 0 4px 14px rgba(27,23,51,.12); }
-.tj-leg { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink); }
+/* Légende flottante : elle se lit par-dessus une carte imprévisible (routes claires,
+   forêts sombres). D'où un verre nettement plus dense qu'ailleurs et un texte à
+   pleine opacité — l'ancienne version à 86 % passait délavée sur les fonds clairs. */
+.trajet-legend { position: absolute; top: 12px; left: 12px; z-index: 500; display: flex; gap: 16px;
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: saturate(180%) blur(16px); backdrop-filter: saturate(180%) blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill); padding: 8px 15px;
+  box-shadow: var(--glass-shine), 0 4px 16px rgba(27,23,51,.18); }
+.tj-leg { display: inline-flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; color: var(--ink);
+  text-transform: uppercase; letter-spacing: .7px; }
 .tj-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; }
 .tj-dot.a { background: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.18); }
 .tj-dot.b { background: var(--coral-strong); box-shadow: 0 0 0 3px rgba(244,63,94,.18); }
@@ -914,16 +1455,23 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 .trajet-map-hint { position: absolute; inset: 0; z-index: 480; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 10px; text-align: center; padding: 24px; pointer-events: none;
   color: var(--muted); font-size: 13px; line-height: 1.5;
-  background: radial-gradient(120% 80% at 50% 45%, rgba(255,255,255,.72) 0%, rgba(255,255,255,.42) 55%, rgba(255,255,255,0) 100%); }
-.trajet-map-hint svg { color: var(--accent); opacity: .8; }
+  background: radial-gradient(58% 42% at 50% 48%, var(--map-veil-1) 0%, var(--map-veil-2) 62%, transparent 100%); }
+.trajet-map-hint svg { color: var(--accent); opacity: .85; }
+/* Voile de l'état vide : clair sur carte claire, sombre sur carte sombre. */
+/* Voile de l'état vide : il ne doit assombrir QUE la zone du texte, au centre.
+   À 82 % il noircissait la carte entière — on redescend nettement et on resserre
+   le rayon pour que la carte reste lisible tout autour. */
+:root { --map-veil-1: rgba(255,255,255,.72); --map-veil-2: rgba(255,255,255,.28); }
+:root[data-theme="dark"] { --map-veil-1: rgba(20,18,31,.62); --map-veil-2: rgba(20,18,31,.20); }
 .trajet-map-wrap.has-route .trajet-map-hint { display: none; }
 /* Carte Leaflet harmonisée à la charte (look moderne et épuré) */
 .trajet-map .leaflet-container { font: inherit; background: #eaeef4; }
-.trajet-map .leaflet-control-zoom { border: none; box-shadow: var(--shadow-card); border-radius: 10px; overflow: hidden; }
+.trajet-map .leaflet-control-zoom { border: none; box-shadow: var(--shadow-card); border-radius: var(--r-sm); overflow: hidden; }
 .trajet-map .leaflet-control-zoom a { width: 30px; height: 30px; line-height: 30px; font-size: 17px; color: var(--ink); background: var(--surface); border: none; }
 .trajet-map .leaflet-control-zoom a:hover { background: var(--accent-soft); color: var(--accent); }
 .trajet-map .leaflet-bar a:first-child { border-bottom: 1px solid var(--border); }
-.trajet-map .leaflet-control-attribution { background: rgba(255,255,255,.78); backdrop-filter: blur(4px); border-radius: 8px 0 0 0; padding: 2px 7px; font-size: 10px; color: var(--muted); }
+.trajet-map .leaflet-control-attribution { background: var(--glass-bg-strong); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-radius: 8px 0 0 0; padding: 2px 7px; font-size: 10px; color: var(--muted); }
+.trajet-map .leaflet-control-zoom a { border-radius: 0; }
 .trajet-map .leaflet-control-attribution a { color: var(--accent); }
 .trajet-result { padding: 16px; }
 .trajet-result:empty { padding: 0; }
@@ -932,8 +1480,10 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 
 /* Autocomplétion d'adresses */
 .ac-field { position: relative; }
-.ac-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px; background: var(--surface);
-  border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow-card); max-height: 260px; overflow-y: auto; }
+.ac-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 5px;
+  background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border); border-radius: var(--r-lg); box-shadow: var(--glass-shine), var(--glass-shadow); max-height: 260px; overflow-y: auto; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .ac-list { background: var(--surface); } }
 .ac-item { display: flex; flex-direction: column; gap: 1px; padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
 .ac-item:last-child { border-bottom: none; }
 .ac-item:hover { background: var(--accent-soft); }
@@ -970,16 +1520,44 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .topbar { height: auto; flex-wrap: wrap; gap: 8px 12px; padding: calc(9px + env(safe-area-inset-top)) 12px 9px; }
   .brand .sub { display: none; }
   .brand h1 { font-size: 17px; }
-  .brand .logo { width: 33px; height: 33px; font-size: 17px; }
+  .brand .logo { width: 33px; height: 33px; }
   /* Onglets du haut masqués sur mobile : remplacés par la barre du bas. */
   .tabs { display: none; }
 
   /* Barre de navigation fixe en bas (téléphone uniquement) */
+  /* Barre du bas en verre : le contenu défile visiblement dessous (comme iOS). */
   .mobilebar {
     display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-    background: var(--surface); border-top: 1px solid var(--border);
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border-top: 1px solid var(--glass-border);
     padding-bottom: env(safe-area-inset-bottom);
-    box-shadow: 0 -4px 18px rgba(27,23,51,.08);
+    box-shadow: var(--glass-shine), 0 -4px 22px rgba(27,23,51,.10);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .mobilebar { background: var(--surface); }
+  }
+  /* Onglet actif : pastille arrondie derrière l'icône, plutôt qu'un simple bleu. */
+  .mtab.active::before {
+    content: ''; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+    width: 46px; height: 30px; border-radius: var(--r-md);
+    background: var(--accent-soft); z-index: -1;
+  }
+  .mtab { position: relative; z-index: 0; transition: transform .18s cubic-bezier(.32,.72,0,1); }
+  /* L'icône s'enfonce sous le doigt, et la pastille de l'onglet actif apparaît
+     avec un petit rebond — deux transforms, rien de coûteux. */
+  .mtab:active { transform: scale(.9); }
+  .mtab.active::before { animation: mtabPop .34s cubic-bezier(.34,1.5,.64,1); }
+  @keyframes mtabPop { from { transform: translateX(-50%) scale(.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+  /* La feuille « Plus » : ses entrées arrivent en cascade rapide. */
+  .mobile-sheet-panel .msheet-item { animation: riseIn .3s cubic-bezier(.32,.72,0,1) both; }
+  .mobile-sheet-panel .msheet-item:nth-child(2) { animation-delay: .03s; }
+  .mobile-sheet-panel .msheet-item:nth-child(3) { animation-delay: .06s; }
+  .mobile-sheet-panel .msheet-item:nth-child(4) { animation-delay: .09s; }
+  @media (prefers-reduced-motion: reduce) {
+    .mtab, .mtab:active { transition: none; transform: none; }
+    .mtab.active::before, .mobile-sheet-panel .msheet-item { animation: none; }
   }
   .mobile-sheet { display: block; position: fixed; inset: 0; z-index: 60; }
   .mobile-sheet.hidden { display: none; }
@@ -994,7 +1572,7 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .kpi { padding: 13px 14px; }
   .kpi .value { font-size: 22px; }
-  .card { padding: 15px; border-radius: 12px; }
+  .card { padding: 15px; border-radius: var(--r-md); }
   .card-grid { grid-template-columns: 1fr; }
   .chart-box { height: 230px; }
 
@@ -1015,14 +1593,20 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .modal-backdrop { padding: 10px; align-items: flex-start; }
   .modal, .modal-lg, .ev-modal { max-width: 100%; max-height: 90dvh; padding: 18px 16px; margin-top: env(safe-area-inset-top); }
 
-  /* Mails : liste au-dessus, lecteur en dessous */
+  /* Mails : rail replié en bandeau de dossiers, liste au-dessus du lecteur.
+     Sur mobile on redonne le défilement à la page (pas de panneaux figés). */
+  body:has(#tab-mails.active) main { overflow-y: auto; display: block; }
+  #tab-mails.active { display: block; height: auto; flex: none; }
+  .gm { grid-template-columns: 1fr; height: auto; min-height: 0; gap: 12px; }
+  .mail-list, .mail-reader { height: auto; }
+  .gm-pager { width: 100%; justify-content: flex-end; }
+  .gm-side { flex-direction: row; align-items: center; gap: 10px; }
+  .gm-compose { flex-shrink: 0; padding: 11px 16px; }
+  .gm-folders { flex-direction: row; flex: 1; min-width: 0; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .mfolder { width: auto; flex: 0 0 auto; padding: 0 14px; }
   .mail-grid { grid-template-columns: 1fr; height: auto; }
   .mail-list { max-height: 44vh; }
   .mail-reader { padding: 16px 14px; }
-  .mail-head { gap: 8px; }
-  .mail-folders { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .mail-head-actions { width: 100%; }
-  .mail-head-actions .btn { flex: 1 1 auto; }
 
   /* Agenda : grille plus dense pour tenir sur l'écran */
   .cal-grid { grid-auto-rows: minmax(56px, 1fr); }
@@ -1048,22 +1632,38 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   /* Anti-zoom iOS : tout champ < 16px fait zoomer Safari au focus. À 16px, plus de zoom. */
   input, select, textarea, .input, .dp-field { font-size: 16px; }
 
-  /* ---- Mails : plus de chevauchement, actions qui s'enroulent ---- */
-  .mitem { padding-right: 42px; }                 /* place pour la corbeille */
-  .mitem-del { opacity: .5; font-size: 16px; top: 10px; }   /* visible (pas de survol au doigt) */
+  /* ---- Mails : actions visibles au doigt (pas de survol sur mobile) ---- */
+  .mitem { grid-template-columns: 34px minmax(0, 1fr) 28px; padding: 11px 6px 11px 8px; }
+  .mitem-star, .mitem-del { width: 28px; height: 28px; }
+  .mitem-star { opacity: .55; font-size: 17px; }
+  .mitem-star.on { opacity: 1; }
+  .mitem-del { visibility: visible; opacity: .5; font-size: 15px; }
   .mitem-date { font-size: 11.5px; }
-  .mail-msg-top { flex-direction: column; align-items: stretch; gap: 10px; }
-  .mail-msg-actions { flex-wrap: wrap; gap: 8px; }
-  .mail-msg-actions .btn { flex: 1 1 auto; }
+  .mail-msg-top { flex-direction: column; align-items: stretch; gap: 6px; }
+  .mail-msg-actions { flex-wrap: wrap; }
+  .mail-foot-actions { flex-wrap: wrap; }
+  .mail-foot-actions .btn { flex: 1 1 auto; }
   .mail-reader { max-height: none; padding: 16px 14px; }
   .mail-msg-head h2 { font-size: 17px; }
+
+  /* ---- Parité mobile : recherche + emojis, dimensionnés pour le doigt ---- */
+  /* La barre de recherche des mails existe maintenant aussi sur téléphone :
+     elle prend toute la largeur et la pagination passe dessous. */
+  .gm-topbar { flex-wrap: wrap; }
+  .mail-search { flex: 1 1 100%; order: -1; }
+  .mail-search-input { padding: 11px 34px 11px 40px; }
+  /* Emojis : grille plus large et cases plus grandes (cible tactile ≥ 40 px). */
+  .mc-emoji-pop { grid-template-columns: repeat(6, 1fr); max-height: 46dvh; }
+  .mc-emoji { font-size: 24px; }
+  .mc-emoji-btn { width: 38px; height: 38px; font-size: 20px; }
+  .mc-body-wrap:has(.mc-emoji-btn) textarea { padding-right: 52px; }
 
   /* ---- Factures : tableau -> cartes compactes (lisibles au doigt) ----
      Client = titre de la carte, montant mis en avant, méta resserrées. */
   #facturesTable.table { min-width: 0; }
   #facturesTable, #facturesTable tbody { display: block; width: 100%; }
   #facturesTable thead { display: none; }
-  #facturesTable tr.frow { display: flex; flex-direction: column; border: 1px solid var(--border-strong); border-left: 3px solid var(--soft); border-radius: 12px; padding: 10px 13px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow-soft); }
+  #facturesTable tr.frow { display: flex; flex-direction: column; border: 1px solid var(--border-strong); border-left: 3px solid var(--soft); border-radius: var(--r-md); padding: 10px 13px; margin-bottom: 8px; background: var(--surface); box-shadow: var(--shadow-soft); }
   #facturesTable tr.frow.recue { border-left-color: var(--green); }
   #facturesTable tr.frow.attente { border-left-color: var(--amber); }
   #facturesTable tr.frow.retard { border-left-color: var(--red); }
@@ -1086,7 +1686,7 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   .fiscal-table { display: block; width: 100%; }
   .fiscal-table thead { display: none; }
   .fiscal-table tbody { display: block; width: 100%; }
-  .fiscal-table tr { display: block; border: 1px solid var(--border-strong); border-radius: 12px; padding: 8px 13px; margin-bottom: 10px; background: var(--surface); box-shadow: var(--shadow-soft); }
+  .fiscal-table tr { display: block; border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: 8px 13px; margin-bottom: 10px; background: var(--surface); box-shadow: var(--shadow-soft); }
   .fiscal-table td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; border: none; text-align: right; }
   .fiscal-table td::before { content: attr(data-label); font-weight: 600; color: var(--muted); text-align: left; font-size: 12px; }
   .fiscal-table td.q { font-size: 15px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 2px; }
@@ -1101,18 +1701,18 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   --sp-bg: #121212; --sp-elev: #181818; --sp-elev-2: #282828;
   --sp-line: #2a2a2a; --sp-fg: #ffffff; --sp-dim: #b3b3b3;
   --sp-card-w: 158px;
-  background: var(--sp-bg); border-radius: 16px; padding: 16px 18px 24px;
+  background: var(--sp-bg); border-radius: var(--r-lg); padding: 16px 18px 24px;
   box-shadow: 0 12px 34px rgba(0,0,0,.28); color: var(--sp-fg);
 }
 
 /* --- Barre "en cours de lecture" : gauche | centre | droite --- */
 .sp-nowbar { display: flex; gap: 20px; align-items: center;
   background: linear-gradient(180deg, #202020 0%, var(--sp-elev) 100%);
-  border: 1px solid var(--sp-line); border-radius: 14px; padding: 12px 16px; }
+  border: 1px solid var(--sp-line); border-radius: var(--r-md); padding: 12px 16px; }
 .sp-now-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .sp-now-center { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 0 1 460px; }
 .sp-now-right { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
-.sp-art-wrap { width: 66px; height: 66px; flex-shrink: 0; border-radius: 8px; overflow: hidden;
+.sp-art-wrap { width: 66px; height: 66px; flex-shrink: 0; border-radius: var(--r-xs); overflow: hidden;
   box-shadow: 0 6px 16px rgba(0,0,0,.5); background: var(--sp-elev-2); }
 .sp-art { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sp-art-empty { background: linear-gradient(135deg, #3a3a3a, #232323); }
@@ -1153,31 +1753,31 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 .sp-vol input[type=range] { width: 84px; padding: 0; accent-color: var(--sp-green); background: transparent; border: none; }
 .sp-device-wrap { display: inline-flex; align-items: center; gap: 4px; }
 .sp-device { max-width: 150px; font-size: 12px; color: var(--sp-fg);
-  background: var(--sp-elev-2); border: 1px solid #3e3e3e; border-radius: 8px; padding: 6px 8px; }
+  background: var(--sp-elev-2); border: 1px solid #3e3e3e; border-radius: var(--r-xs); padding: 6px 8px; }
 .sp-device:focus { outline: none; border-color: var(--sp-green); box-shadow: none; }
 
 /* --- Avertissement "aucun appareil" --- */
-.sp-hint { margin-top: 12px; padding: 11px 15px; border-radius: 10px; font-size: 13px; line-height: 1.5;
+.sp-hint { margin-top: 12px; padding: 11px 15px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.5;
   background: rgba(29,185,84,.10); border: 1px solid rgba(29,185,84,.35); color: #cfeeda; }
 .sp-hint b { color: var(--sp-fg); }
 
 /* --- File d'attente (repliable) --- */
-.sp-queue { margin-top: 14px; background: var(--sp-elev); border: 1px solid var(--sp-line); border-radius: 12px; padding: 12px 14px; }
+.sp-queue { margin-top: 14px; background: var(--sp-elev); border: 1px solid var(--sp-line); border-radius: var(--r-md); padding: 12px 14px; }
 .sp-queue-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .sp-queue-head h3 { color: var(--sp-fg); font-size: 15px; font-weight: 700; margin: 0; }
 
 /* --- Corps : bibliothèque (colonne) + contenu --- */
 .sp-body { display: grid; grid-template-columns: 260px 1fr; gap: 18px; margin-top: 16px; align-items: start; }
-.sp-sidebar { background: var(--sp-elev); border: 1px solid var(--sp-line); border-radius: 12px; padding: 12px; max-height: 620px; display: flex; flex-direction: column; }
+.sp-sidebar { background: var(--sp-elev); border: 1px solid var(--sp-line); border-radius: var(--r-md); padding: 12px; max-height: 620px; display: flex; flex-direction: column; }
 .sp-side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 4px 10px; }
 .sp-side-head h3 { color: var(--sp-fg); font-size: 14px; font-weight: 700; margin: 0; }
-.sp-density { font-size: 11px; color: var(--sp-dim); background: var(--sp-elev-2); border: 1px solid #3e3e3e; border-radius: 7px; padding: 4px 6px; }
+.sp-density { font-size: 11px; color: var(--sp-dim); background: var(--sp-elev-2); border: 1px solid #3e3e3e; border-radius: var(--r-xs); padding: 4px 6px; }
 .sp-density:focus { outline: none; border-color: var(--sp-green); box-shadow: none; }
 .sp-lib { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #4d4d4d transparent; display: flex; flex-direction: column; gap: 2px; }
 .sp-lib::-webkit-scrollbar { width: 8px; }
 .sp-lib::-webkit-scrollbar-thumb { background: #4d4d4d; border-radius: 4px; }
 .sp-lib-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
-  background: transparent; border: none; border-radius: 8px; padding: 6px 8px; font-family: inherit; transition: background .15s; }
+  background: transparent; border: none; border-radius: var(--r-xs); padding: 6px 8px; font-family: inherit; transition: background .15s; }
 .sp-lib-item:hover { background: var(--sp-elev-2); }
 .sp-lib-art { width: 42px; height: 42px; border-radius: 5px; overflow: hidden; flex-shrink: 0; background: #333; }
 .sp-lib-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1209,10 +1809,10 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
 .sp-row::-webkit-scrollbar-thumb:hover { background: #666; }
 .sp-row::-webkit-scrollbar-track { background: transparent; }
 .sp-card { position: relative; display: flex; flex-direction: column; gap: 10px; text-align: left;
-  background: var(--sp-elev); border: none; border-radius: 10px; padding: 14px; cursor: pointer;
+  background: var(--sp-elev); border: none; border-radius: var(--r-sm); padding: 14px; cursor: pointer;
   font-family: inherit; transition: background .2s; }
 .sp-card:hover { background: var(--sp-elev-2); }
-.sp-card-art { position: relative; width: 100%; aspect-ratio: 1; border-radius: 7px; overflow: hidden;
+.sp-card-art { position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--r-xs); overflow: hidden;
   display: block; background: #333; box-shadow: 0 8px 18px rgba(0,0,0,.4); }
 .sp-card-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sp-card-play { position: absolute; right: 8px; bottom: 8px; width: 42px; height: 42px; border-radius: 50%;
@@ -1228,7 +1828,7 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   color: var(--sp-dim); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; padding: 4px 2px; }
 .sp-back:hover { color: var(--sp-fg); }
 .sp-detail-hero { display: flex; align-items: flex-end; gap: 18px; margin: 12px 0 18px; }
-.sp-detail-art { width: 140px; height: 140px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: #333; box-shadow: 0 12px 28px rgba(0,0,0,.5); }
+.sp-detail-art { width: 140px; height: 140px; border-radius: var(--r-xs); overflow: hidden; flex-shrink: 0; background: #333; box-shadow: 0 12px 28px rgba(0,0,0,.5); }
 .sp-detail-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sp-detail-kind { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--sp-dim); font-weight: 700; }
 .sp-detail-title { font-size: 28px; font-weight: 800; color: var(--sp-fg); letter-spacing: -.5px; margin: 4px 0; line-height: 1.1; }

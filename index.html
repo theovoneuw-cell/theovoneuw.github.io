@@ -15,7 +15,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-title" content="Ma Compta" />
-  <link rel="apple-touch-icon" href="assets/icon.png" />
+  <!-- 180 px : la taille exacte attendue par iOS pour l'icône d'écran d'accueil
+       (une image plus grande était rééchantillonnée par Safari). -->
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <link rel="stylesheet" href="css/styles.css" />
   <!-- Thème clair/sombre : posé avant le 1er rendu pour éviter tout flash. -->
@@ -25,7 +29,28 @@
   <!-- ===================== EN-TETE ===================== -->
   <header class="topbar">
     <div class="brand">
-      <span class="logo">€</span>
+      <!-- Même marque que l'icône de l'app (assets/logo.svg), en ligne pour rester
+           nette à toute échelle et suivre le thème sans requête réseau. -->
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 512 512" width="34" height="34">
+          <defs>
+            <linearGradient id="hdBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#6366f1"/><stop offset=".58" stop-color="#4f46e5"/><stop offset="1" stop-color="#3a2f9e"/>
+            </linearGradient>
+            <radialGradient id="hdGlow" cx=".82" cy=".9" r=".6">
+              <stop offset="0" stop-color="#fb7185" stop-opacity=".55"/><stop offset="1" stop-color="#fb7185" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="hdRibbon" x1=".1" y1="1" x2=".95" y2="0">
+              <stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#fff"/>
+              <stop offset=".76" stop-color="#ffc4cd"/><stop offset="1" stop-color="#fb7185"/>
+            </linearGradient>
+          </defs>
+          <rect width="512" height="512" rx="114" fill="url(#hdBg)"/>
+          <rect width="512" height="512" rx="114" fill="url(#hdGlow)"/>
+          <path d="M406 132 C 375 152 350 172 332 196 A104 104 0 1 0 332 330" fill="none" stroke="url(#hdRibbon)" stroke-width="42" stroke-linecap="round"/>
+          <path d="M152 236h148M152 290h148" stroke="#fff" stroke-width="34" stroke-linecap="round"/>
+        </svg>
+      </span>
       <div>
         <h1>Ma Compta</h1>
         <p class="sub">Théo Von Euw · EI</p>
@@ -39,7 +64,6 @@
       <button class="tab" data-tab="trajets">Trajets</button>
       <button class="tab" data-tab="mails">Mails <span id="mailsBadge" class="tab-badge hidden"></span></button>
       <button class="tab" data-tab="redaction">IA</button>
-      <button class="tab" data-tab="spotify">Spotify</button>
       <button class="tab" data-tab="settings">Paramètres</button>
     </nav>
 
@@ -157,7 +181,11 @@
       <div class="subpanel" id="sub-factures">
         <div class="toolbar">
           <button id="btnNewFacture" class="btn btn-primary">+ Nouvelle facture</button>
-          <button id="btnIndy" class="btn" title="Ouvrir la facturation Indy dans le navigateur">Facturation Indy ↗</button>
+          <button id="btnIndy" class="btn-indy" title="Ouvrir la facturation Indy dans le navigateur">
+            <svg class="indy-logo" viewBox="0 0 108 55" width="34" height="17" aria-label="Indy" role="img"><path fill-rule="evenodd" clip-rule="evenodd" d="M67.0032 15.4169L70.8531 0H80.7529L70.1168 42.7617H60.217L61.592 37.2618C59.5983 40.5617 56.5046 43.3117 52.8609 43.3117C46.6048 43.3117 44.1298 38.9805 46.0548 31.3494C46.0548 31.3494 47.1431 26.8209 48.2197 22.4891C49.827 16.0239 54.781 11.6873 60.8069 11.6873C64.1948 11.6873 66.2105 13.3063 67.0032 15.4169ZM63.86 30.2494L65.3456 24.2098C66.1706 20.9787 65.3456 18.7099 62.8019 18.7099C60.2582 18.7099 58.4708 20.8412 57.6458 24.2098L56.1601 30.2494C55.3352 33.4806 56.1601 35.7493 58.7038 35.7493C61.2475 35.7493 63.035 33.6181 63.86 30.2494ZM20.4507 5.70615C19.8196 8.4396 16.7149 10.7936 13.096 10.7936C9.47704 10.7936 7.44483 8.4396 8.07594 5.70615C8.70706 2.9727 11.7485 0.61875 15.3647 0.61875C18.9809 0.61875 21.0818 2.9727 20.4507 5.70615ZM13.406 42.7616L20.9683 12.2372H30.8681L29.4931 17.7371C31.4869 14.4372 34.5805 11.6873 38.2242 11.6873C44.4803 11.6873 46.9553 16.0184 45.0303 23.6495C43.1054 31.2806 40.2867 42.7616 40.2867 42.7616H30.4556C30.4556 42.7616 34.0306 28.2557 34.8555 25.0245C35.6805 21.7933 35.1993 19.5246 32.6556 19.5246C30.1119 19.5246 28.5307 21.6558 27.7057 25.0245C26.8807 28.3932 23.3058 42.7616 23.3058 42.7616H13.406ZM101.194 39.4617L108 12.2373H98.1002C98.1002 12.2373 94.5252 26.6057 93.7002 29.9744C92.8753 33.3431 91.294 35.4743 88.7503 35.4743C86.2066 35.4743 85.7254 33.2056 86.5504 29.9744C87.3754 26.7432 90.9503 12.2373 90.9503 12.2373H81.1192C81.1192 12.2373 78.3006 23.7183 76.3756 31.3494C74.4506 38.9805 76.9256 43.3117 83.1817 43.3117C86.8254 43.3117 89.9191 40.5617 91.9128 37.2618C90.4058 43.5468 87.7879 46.789 82.3567 46.7491C80.5369 46.736 77.5718 45.6347 76.0318 44.2741L73.9006 52.5927C76.0834 54.0763 79.9505 54.9989 83.8692 54.9989C92.4628 54.9989 98.7189 49.499 101.194 39.4617ZM9.89981 42.7617H0L7.56235 12.2373C8.90157 12.9248 10.8953 13.3373 12.2703 13.3373C13.6452 13.3373 16.1202 12.9248 17.4622 12.2373L9.89981 42.7617Z"/></svg>
+            <span>Facturation</span>
+            <svg class="indy-ext" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+          </button>
           <input type="search" id="searchInput" class="input" placeholder="Rechercher un client, un n°…" />
           <span class="spacer"></span>
           <span id="facturesSummary" class="summary"></span>
@@ -268,10 +296,12 @@
       <div class="agenda-head">
         <h2 id="agendaTitle">Agenda</h2>
         <div class="agenda-nav">
+          <span class="agenda-nav-group">
+            <button id="agendaPrev" class="btn" title="Mois précédent" aria-label="Mois précédent">‹</button>
+            <button id="agendaToday" class="btn">Aujourd'hui</button>
+            <button id="agendaNext" class="btn" title="Mois suivant" aria-label="Mois suivant">›</button>
+          </span>
           <button id="agendaAdd" class="btn btn-primary" title="Ajouter un événement">+ Événement</button>
-          <button id="agendaPrev" class="btn" title="Mois précédent">‹</button>
-          <button id="agendaToday" class="btn">Aujourd'hui</button>
-          <button id="agendaNext" class="btn" title="Mois suivant">›</button>
         </div>
       </div>
       <div id="agendaBody"></div>
@@ -382,25 +412,52 @@
 
     <!-- ===================== MAILS (Gmail, lecture) ===================== -->
     <section id="tab-mails" class="panel">
-      <div class="mail-head">
-        <div class="mail-folders">
-          <button class="mfolder active" data-folder="principal">Boîte principale</button>
-          <button class="mfolder" data-folder="envoyes">Envoyés</button>
-          <button class="mfolder" data-folder="brouillons">Brouillons</button>
-        </div>
-        <div class="mail-head-actions">
-          <div class="mail-search" id="mailSearchWrap">
-            <span class="mail-search-ico" aria-hidden="true">🔍</span>
-            <input type="search" id="mailSearch" class="mail-search-input" placeholder="Rechercher dans mes mails…" autocomplete="off" spellcheck="false">
-            <button id="mailSearchClear" class="mail-search-clear hidden" type="button" title="Effacer" aria-label="Effacer la recherche">✕</button>
+      <div class="gm">
+        <!-- Colonne de gauche : composer + dossiers (façon Gmail) -->
+        <aside class="gm-side">
+          <button id="mailCompose" class="gm-compose" title="Écrire un nouveau message">
+            <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span>Nouveau message</span>
+          </button>
+          <nav class="gm-folders" aria-label="Dossiers">
+            <button class="mfolder active" data-folder="principal">
+              <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+              <span class="gm-f-lbl">Boîte de réception</span>
+              <span class="gm-f-count hidden" id="gmInboxCount"></span>
+            </button>
+            <button class="mfolder" data-folder="favoris">
+              <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span class="gm-f-lbl">Favoris</span>
+            </button>
+            <button class="mfolder" data-folder="envoyes">
+              <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+              <span class="gm-f-lbl">Envoyés</span>
+            </button>
+            <button class="mfolder" data-folder="brouillons">
+              <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              <span class="gm-f-lbl">Brouillons</span>
+            </button>
+          </nav>
+        </aside>
+
+        <!-- Colonne de droite : recherche + liste + lecteur -->
+        <div class="gm-main">
+          <div class="gm-topbar">
+            <div class="mail-search" id="mailSearchWrap">
+              <svg class="mail-search-ico ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" id="mailSearch" class="mail-search-input" placeholder="Rechercher dans mes mails…" autocomplete="off" spellcheck="false">
+              <button id="mailSearchClear" class="mail-search-clear hidden" type="button" title="Effacer" aria-label="Effacer la recherche">✕</button>
+            </div>
+            <div class="gm-pager" id="mailPager"></div>
+            <button id="mailRefresh" class="gm-icobtn" title="Actualiser" aria-label="Actualiser">
+              <svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            </button>
           </div>
-          <button id="mailCompose" class="btn btn-primary">Nouveau message</button>
-          <button id="mailRefresh" class="btn" title="Rafraîchir">↻ Actualiser</button>
+          <div class="mail-grid">
+            <div class="mail-list" id="mailList"></div>
+            <div class="mail-reader" id="mailReader"></div>
+          </div>
         </div>
-      </div>
-      <div class="mail-grid">
-        <div class="mail-list" id="mailList"></div>
-        <div class="mail-reader" id="mailReader"></div>
       </div>
     </section>
 
@@ -426,130 +483,6 @@
             <button type="button" id="aiSend" class="btn btn-coral">Envoyer</button>
           </div>
           <input type="file" id="aiFile" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,application/pdf,text/plain,text/csv" multiple hidden>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== SPOTIFY (télécommande, PC uniquement) ===================== -->
-    <section id="tab-spotify" class="panel">
-      <div class="today-head">
-        <h2>Spotify</h2>
-        <p class="card-sub">Pilote la lecture sur ton appareil Spotify (PC ou téléphone) pendant que tu travailles. Nécessite Spotify Premium.</p>
-      </div>
-
-      <div id="spNotConnected" class="card hidden">
-        <h3>Connecter ton compte Spotify</h3>
-        <p class="card-sub">Renseigne ton identifiant Spotify (Client ID) dans Paramètres → Connexions, puis connecte-toi ci-dessous. Le son sort de ton app Spotify ; cet onglet sert de télécommande.</p>
-        <div class="btn-row">
-          <button id="spConnect" class="btn btn-primary">Connecter mon compte Spotify</button>
-        </div>
-      </div>
-
-      <div id="spConnected" class="hidden sp-app">
-        <!-- ===== Barre "en cours de lecture" ===== -->
-        <div class="sp-nowbar">
-          <div class="sp-now-left">
-            <div class="sp-art-wrap"><img id="spArt" class="sp-art sp-art-empty" alt="" /></div>
-            <div class="sp-meta">
-              <div id="spTitle" class="sp-title">—</div>
-              <div id="spArtist" class="sp-artist"></div>
-            </div>
-            <button id="spLike" class="sp-ctl sp-ctl-sm sp-like hidden" title="Ajouter aux titres likés" aria-label="Liker">
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 21s-7.5-4.9-10-9.1C.6 9.2 1.6 6 4.5 6 6.4 6 7.7 7.1 12 11c4.3-3.9 5.6-5 7.5-5 2.9 0 3.9 3.2 2.5 5.9C19.5 16.1 12 21 12 21z"/></svg>
-            </button>
-          </div>
-
-          <div class="sp-now-center">
-            <div class="sp-btns">
-              <button class="sp-ctl sp-ctl-sm sp-toggle" id="spShuffle" data-sp="shuffle" title="Lecture aléatoire" aria-label="Lecture aléatoire">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17 3l4 4-4 4V8h-2.2l-2.1 2.9-1.3-1.7L13.3 6H17V3zM3 6h4.1l8.6 12H21v-3l4 4-4 4v-3h-6.3L6.1 8H3V6zm14 9v-3l4 4-4 4v-3h-3.4l1.3-1.7L16.7 15H17z"/></svg>
-              </button>
-              <button class="sp-ctl" data-sp="prev" title="Précédent" aria-label="Précédent">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M7 6v12H5V6h2zm12 0v12l-9-6 9-6z"/></svg>
-              </button>
-              <button id="spPlay" class="sp-ctl sp-ctl-play" data-sp="playpause" title="Lecture / Pause" aria-label="Lecture / Pause">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-              </button>
-              <button class="sp-ctl" data-sp="next" title="Suivant" aria-label="Suivant">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17 6v12h2V6h-2zM5 6v12l9-6-9-6z"/></svg>
-              </button>
-              <button class="sp-ctl sp-ctl-sm sp-toggle" id="spRepeat" data-sp="repeat" title="Répéter" aria-label="Répéter">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
-              </button>
-            </div>
-            <div class="sp-progress">
-              <span id="spPos" class="sp-time">0:00</span>
-              <div class="sp-bar" id="spBarWrap" title="Aller à…"><i id="spBar"></i></div>
-              <span id="spDur" class="sp-time">0:00</span>
-            </div>
-          </div>
-
-          <div class="sp-now-right">
-            <button id="spQueueBtn" class="sp-ctl sp-ctl-sm" title="File d'attente" aria-label="File d'attente">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3 6h13v2H3V6zm0 5h13v2H3v-2zm0 5h9v2H3v-2zm15-6 4 3-4 3v-6z"/></svg>
-            </button>
-            <span class="sp-vol">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
-              <input type="range" id="spVol" min="0" max="100" value="50" aria-label="Volume" />
-            </span>
-            <span class="sp-device-wrap">
-              <select id="spDevice" class="sp-device" title="Appareil de lecture"></select>
-              <button id="spDevRefresh" class="sp-ctl sp-ctl-sm" title="Actualiser les appareils" aria-label="Actualiser les appareils">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M17.65 6.35A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z"/></svg>
-              </button>
-            </span>
-          </div>
-        </div>
-
-        <!-- Avertissement "aucun appareil" -->
-        <div id="spNoDevice" class="sp-hint hidden">
-          <b>Aucun appareil Spotify détecté.</b> Ouvre l'application <b>Spotify</b> sur ce PC ou sur ton
-          téléphone (même compte), lance un morceau puis clique sur le bouton Actualiser. La musique se jouera sur cet appareil.
-        </div>
-
-        <!-- File d'attente (repliable) -->
-        <div id="spQueue" class="sp-queue hidden">
-          <div class="sp-queue-head">
-            <h3>File d'attente</h3>
-            <button id="spQueueClose" class="sp-ctl sp-ctl-sm" title="Fermer" aria-label="Fermer">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>
-            </button>
-          </div>
-          <div id="spQueueList" class="sp-tracklist"></div>
-        </div>
-
-        <!-- ===== Corps : bibliothèque + contenu ===== -->
-        <div class="sp-body">
-          <aside class="sp-sidebar">
-            <div class="sp-side-head">
-              <h3>Ta bibliothèque</h3>
-              <label class="sp-density-wrap" title="Taille des cartes">
-                <select id="spDensity" class="sp-density">
-                  <option value="s">Petites</option>
-                  <option value="m" selected>Moyennes</option>
-                  <option value="l">Grandes</option>
-                </select>
-              </label>
-            </div>
-            <div id="spLibrary" class="sp-lib"></div>
-          </aside>
-
-          <main class="sp-main">
-            <div class="sp-search-wrap">
-              <svg class="sp-search-ic" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.49 4.49 0 0 1 9.5 14z"/></svg>
-              <input type="search" id="spSearch" class="sp-search" placeholder="Rechercher un titre, un artiste…" autocomplete="off" />
-            </div>
-
-            <div id="spResults" class="sp-grid hidden"></div>
-            <div id="spDetail" class="sp-detail hidden"></div>
-
-            <div id="spBrowse">
-              <section class="sp-rail hidden" id="spRailPlaylists"><h3>Tes playlists</h3><div class="sp-row" id="spPlaylists"></div></section>
-              <section class="sp-rail hidden" id="spRailRecent"><h3>Écoutés récemment</h3><div class="sp-row" id="spRecent"></div></section>
-              <section class="sp-rail hidden" id="spRailTop"><h3>Tes titres du moment</h3><div class="sp-row" id="spTop"></div></section>
-              <section class="sp-rail hidden" id="spRailNew"><h3>Nouveautés</h3><div class="sp-row" id="spNew"></div></section>
-            </div>
-          </main>
         </div>
       </div>
     </section>
@@ -676,25 +609,6 @@
                 <div class="field" style="align-self:flex-end">
                   <button id="btnSaveToll" class="btn">Enregistrer</button>
                 </div>
-              </div>
-            </div>
-
-            <div class="conn-block" id="spSettingsBlock">
-              <div class="conn-title"><span>Spotify (télécommande)</span> <span id="connSpotifyState" class="pill">non configuré</span></div>
-              <p class="muted conn-help">Contrôle la lecture Spotify depuis l'onglet Spotify (PC uniquement, Premium requis). <a href="#" id="lnkSpotify" class="lnk">Créer une app Spotify →</a></p>
-              <p class="muted conn-help">Dans le dashboard, ajoute cette URL de redirection : <code>http://127.0.0.1:42815/callback</code></p>
-              <div class="field-row">
-                <div class="field" style="flex:1">
-                  <label>Client ID Spotify</label>
-                  <input type="text" id="setSpotifyClientId" class="input" placeholder="collez votre Client ID ici" autocomplete="off" />
-                </div>
-                <div class="field" style="align-self:flex-end">
-                  <button id="btnSaveSpotify" class="btn">Enregistrer</button>
-                </div>
-              </div>
-              <div class="btn-row">
-                <button id="btnConnectSpotify" class="btn btn-primary">Connecter Spotify</button>
-                <button id="btnDisconnectSpotify" class="btn">Déconnecter</button>
               </div>
             </div>
 
@@ -948,7 +862,6 @@
   <script src="js/fiscal.js"></script>
   <script src="js/bilan.js"></script>
   <script src="js/ai.js"></script>
-  <script src="js/spotify.js"></script>
   <script src="js/connections.js"></script>
   <script src="js/agenda.js"></script>
   <script src="js/mailbox.js"></script>

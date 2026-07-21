@@ -61,7 +61,14 @@ CC.renderToday = function () {
 function renderRelances(impayes, settings) {
   const box = document.getElementById('todayRelances');
   if (!box) return;
-  if (!impayes.length) { box.innerHTML = '<div class="ck-empty">Aucun impayé 🎉</div>'; return; }
+  if (!impayes.length) {
+    box.innerHTML = `<div class="ck-empty ck-empty-rich">
+      <span class="ck-empty-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span>Aucun impayé</span>
+      <small>Toutes tes factures émises ont été réglées.</small>
+    </div>`;
+    return;
+  }
   const sorted = impayes.slice().sort((a, b) => (b.montant || 0) - (a.montant || 0)).slice(0, 8);
   box.innerHTML = sorted.map((f) => {
     const st = CC.stats.statut(f, settings);

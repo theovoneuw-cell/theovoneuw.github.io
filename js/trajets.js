@@ -35,13 +35,26 @@ CC.trajets = {
     const el = document.getElementById('tj_map');
     if (!el) return;
     const map = L.map(el, { zoomControl: true, attributionControl: false, zoomSnap: 0.5 }).setView([46.6, 2.5], 5);
-    // Fond de carte clair et moderne (CARTO Voyager), rendu net sur écrans Retina.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20,
-      subdomains: 'abcd'
-    }).addTo(map);
     map.zoomControl.setPosition('topright');
     CC.trajets._map = map;
+    CC.trajets._applyTiles();
+  },
+
+  // Fond de carte accordé au thème. En sombre, les tuiles CLAIRES sur un conteneur
+  // sombre laissaient voir un quadrillage noir : les tuiles ne se joignent pas au
+  // pixel près, et le fond du conteneur transparaissait dans chaque interstice.
+  // On change donc de jeu de tuiles au lieu d'assombrir les tuiles claires.
+  _applyTiles() {
+    const map = CC.trajets._map;
+    if (!map || typeof L === 'undefined') return;
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const url = dark
+      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    if (CC.trajets._tilesUrl === url) return;
+    if (CC.trajets._tiles) map.removeLayer(CC.trajets._tiles);
+    CC.trajets._tiles = L.tileLayer(url, { maxZoom: 20, subdomains: 'abcd' }).addTo(map);
+    CC.trajets._tilesUrl = url;
   },
 
   renderRate() {
@@ -205,8 +218,13 @@ CC.trajets = {
     const latlngs = (geometry || []).map((c) => [c[1], c[0]]);   // [lon,lat] -> [lat,lon]
     if (latlngs.length) {
       // Liseré blanc sous le tracé (effet « carte de navigation » moderne)
-      CC.trajets._routeCasing = L.polyline(latlngs, { color: '#ffffff', weight: 9, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-      CC.trajets._route = L.polyline(latlngs, { color: '#4f46e5', weight: 5, opacity: 0.95, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+      // Gaine + tracé. La gaine détache l'itinéraire du fond : blanche sur carte
+      // claire, indigo nuit sur carte sombre (une gaine blanche y éblouissait).
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const cs = getComputedStyle(document.documentElement);
+      const accent = (cs.getPropertyValue('--accent') || '').trim() || '#4f46e5';
+      CC.trajets._routeCasing = L.polyline(latlngs, { color: dark ? '#12101f' : '#ffffff', weight: 10, opacity: dark ? 0.75 : 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+      CC.trajets._route = L.polyline(latlngs, { color: accent, weight: 5, opacity: 0.98, lineJoin: 'round', lineCap: 'round' }).addTo(map);
     }
     const mk = (pt, cls) => L.marker([pt.lat, pt.lon], {
       icon: L.divIcon({ className: '', html: `<span class="tj-pin ${cls}"></span>`, iconSize: [18, 18], iconAnchor: [9, 9] })

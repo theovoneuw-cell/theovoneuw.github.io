@@ -30,6 +30,13 @@ window.CC = window.CC || {};
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', eff === 'dark' ? '#14121f' : '#4f46e5');
     updateBtn(eff);
+    // Les graphiques sont peints dans un <canvas> : ils ne suivent pas le CSS et
+    // doivent être retracés avec la palette du nouveau thème. (Absent au premier
+    // appel — ce script est chargé avant charts.js — d'où le test.)
+    if (CC.chartsRefreshTheme) { try { CC.chartsRefreshTheme(); } catch (_) {} }
+    // Même raison pour le fond de carte : les tuiles sont des images, elles ne
+    // suivent pas le CSS et doivent être remplacées par le jeu clair ou sombre.
+    if (CC.trajets && CC.trajets._applyTiles) { try { CC.trajets._applyTiles(); } catch (_) {} }
   }
 
   CC.theme = {

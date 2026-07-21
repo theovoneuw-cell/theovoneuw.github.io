@@ -82,7 +82,8 @@ window.CC = window.CC || {};
       if (data.__error) return { error: data.__error };
       ids = (data.drafts || []).map((d) => ({ id: d.message.id, draftId: d.id }));
     } else {
-      const labelIds = dossier === 'envoyes' ? 'SENT' : 'INBOX';
+      // 'favoris' = messages marqués d'une étoile (label STARRED, toutes boîtes).
+      const labelIds = dossier === 'envoyes' ? 'SENT' : (dossier === 'favoris' ? 'STARRED' : 'INBOX');
       const q = dossier === 'principal' ? '&q=' + encodeURIComponent('category:primary') : '';
       const data = await gget(GMAIL + '/messages?labelIds=' + labelIds + '&maxResults=' + max + q);
       if (data.__error) return { error: data.__error };
@@ -99,7 +100,8 @@ window.CC = window.CC || {};
         date: header(m.payload, 'Date'),
         dateMs: m.internalDate ? Number(m.internalDate) : 0,
         apercu: m.snippet || '',
-        nonLu: labels.indexOf('UNREAD') !== -1
+        nonLu: labels.indexOf('UNREAD') !== -1,
+        favori: labels.indexOf('STARRED') !== -1
       };
     }));
     return { messages: metas.filter(Boolean).sort((a, b) => b.dateMs - a.dateMs) };
@@ -352,7 +354,20 @@ window.CC = window.CC || {};
     },
 
     // ---- Dialogues / liens / pièces jointes ----
-    openUrl(url) { try { window.open(url, '_blank', 'noopener'); } catch (_) {} return Promise.resolve({ ok: true }); },
+    // Sur iPhone, `window.open(..., '_blank')` force l'ouverture d'un ONGLET SAFARI :
+    // iOS n'y évalue pas les « liens universels », donc une app installée (Indy…)
+    // ne s'ouvre jamais. Une navigation de premier niveau, elle, les déclenche.
+    // Depuis l'app installée sur l'écran d'accueil, on repart ensuite sur l'app via
+    // le bouton « Retour » d'iOS, sans perdre l'état (les données sont déjà en local).
+    openUrl(url) {
+      try {
+        const standalone = !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+        const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (iOS && standalone) window.location.href = url;
+        else window.open(url, '_blank', 'noopener');
+      } catch (_) {}
+      return Promise.resolve({ ok: true });
+    },
     openPath() { return Promise.resolve({ error: "Les pièces jointes locales ne sont pas accessibles sur l'iPhone." }); },
     confirmUnsaved() { return Promise.resolve({ response: 0 }); },
     message() { return Promise.resolve({ response: 0 }); },
@@ -459,6 +474,14 @@ window.CC = window.CC || {};
         if (r.__error) return { error: r.__error };
         return { ok: true };
       },
+      async star(opts) {
+        const o = opts || {};
+        if (!o.id) return { error: 'Message manquant.' };
+        const body = o.star ? { addLabelIds: ['STARRED'] } : { removeLabelIds: ['STARRED'] };
+        const r = await gsend('POST', GMAIL + '/messages/' + o.id + '/modify', body);
+        if (r.__error) return { error: r.__error };
+        return { ok: true, favori: !!o.star };
+      },
       async attachment(opts) {
         const o = opts || {};
         const d = await gget(GMAIL + '/messages/' + o.messageId + '/attachments/' + o.attachmentId);
@@ -546,5 +569,20 @@ window.CC = window.CC || {};
   // Service worker (offline) : uniquement en contexte http(s), jamais en Electron (file://).
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+
+  // ---- Stockage persistant (clés d'API, code PIN, réglages) ----
+  // Par défaut, iOS/Safari considèrent le stockage d'un site comme jetable et
+  // l'effacent après ~7 jours sans visite : d'où les clés à ressaisir. On demande
+  // donc explicitement un stockage « persistant », que le navigateur n'évince plus
+  // automatiquement. Accordé sans invite lorsque l'app est installée sur l'écran
+  // d'accueil — raison de plus pour l'ouvrir depuis l'icône plutôt que Safari.
+  if (navigator.storage && navigator.storage.persist) {
+    window.addEventListener('load', async () => {
+      try {
+        if (await navigator.storage.persisted()) return;   // déjà acquis
+        await navigator.storage.persist();
+      } catch (_) {}
+    });
   }
 })();

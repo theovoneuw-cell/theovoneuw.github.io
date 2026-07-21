@@ -140,6 +140,12 @@ CC.updateMailBadge = async function () {
   let r; try { r = await window.api.gmail.unread(); } catch (_) { r = {}; }
   const n = (r && !r.error && r.count) ? r.count : 0;
   const txt = n > 99 ? '99+' : String(n);
+  // Compteur du dossier "Boîte de réception" dans le rail des mails (comme Gmail)
+  const fc = document.getElementById('gmInboxCount');
+  if (fc) {
+    if (n > 0) { fc.textContent = txt; fc.classList.remove('hidden'); }
+    else fc.classList.add('hidden');
+  }
   [b, mb].forEach((el) => {
     if (!el) return;
     if (n > 0) { el.textContent = txt; el.classList.remove('hidden'); }
@@ -194,7 +200,6 @@ CC.switchTab = function (name, dir) {
   if (name === 'agenda' && CC.agenda) CC.agenda.render();
   if (name === 'mails' && CC.mailbox) CC.mailbox.render();
   if (name === 'redaction' && CC.ai) CC.ai.render();
-  if (name === 'spotify' && CC.spotify) CC.spotify.render();
   if (name === 'trajets' && CC.trajets) CC.trajets.render();
   if (name === 'settings' && CC.connections) CC.connections.render();
 };
@@ -275,15 +280,23 @@ CC.initMobileNav = function () {
   // Zones à ignorer : elles gèrent leur propre défilement/geste horizontal.
   const EXCLUDE = '.leaflet-container, .table-wrap, .chart-box, .subtabs, .dp, input, textarea, select, .mobile-sheet';
   let x0 = null, y0 = null, tracking = false, dragPanel = null, horiz = false;
+  let edgeLeft = false, edgeRight = false;
+
+  // Ordre des onglets = celui des onglets visibles du haut (les masqués sont exclus).
+  function tabOrder() {
+    return Array.prototype.slice.call(document.querySelectorAll('.tab[data-tab]'))
+      .filter((tb) => !tb.classList.contains('hidden')).map((tb) => tb.dataset.tab);
+  }
 
   function clearDrag(animateBack) {
     if (!dragPanel) return;
     const p = dragPanel; dragPanel = null;
     p.classList.remove('dragging');
     if (animateBack) {
-      p.style.transition = 'transform .2s ease, opacity .2s ease';
-      p.style.transform = 'translateX(0)'; p.style.opacity = '1';
-      setTimeout(() => { p.style.transition = ''; p.style.transform = ''; p.style.opacity = ''; }, 210);
+      // Retour en place sur une courbe élastique douce plutôt qu'un `ease` plat.
+      p.style.transition = 'transform .34s cubic-bezier(.22,1.2,.36,1), opacity .24s ease';
+      p.style.transform = 'translateX(0) scale(1)'; p.style.opacity = '1';
+      setTimeout(() => { p.style.transition = ''; p.style.transform = ''; p.style.opacity = ''; }, 350);
     } else {
       p.style.transition = ''; p.style.transform = ''; p.style.opacity = '';
     }
@@ -307,12 +320,26 @@ CC.initMobileNav = function () {
       horiz = true;
       dragPanel = document.querySelector('.panel.active');
       if (dragPanel) dragPanel.classList.add('dragging');
+      // On mémorise s'il existe un onglet de chaque côté : sans voisin, le geste
+      // doit « résister » au lieu de glisser normalement pour revenir bredouille.
+      const ord = tabOrder();
+      const i = ord.findIndex((n) => { const p = document.getElementById('tab-' + n); return p && p.classList.contains('active'); });
+      edgeLeft = i <= 0;                    // pas d'onglet précédent
+      edgeRight = i < 0 || i >= ord.length - 1;   // pas d'onglet suivant
     }
     // Geste horizontal verrouillé : on empêche le scroll vertical de la page.
     if (e.cancelable) e.preventDefault();
     if (!dragPanel) return;
-    const damp = Math.max(-72, Math.min(72, dx * 0.42));     // amorti + borné
-    dragPanel.style.transform = 'translateX(' + damp + 'px)';
+    // Élastique de bout de course (comme iOS) : au premier ou au dernier onglet,
+    // le panneau ne suit le doigt qu'au tiers et bute vite — on sent le bord.
+    const atEdge = (dx > 0 && edgeLeft) || (dx < 0 && edgeRight);
+    const factor = atEdge ? 0.16 : 0.42;
+    const limit = atEdge ? 26 : 72;
+    const damp = Math.max(-limit, Math.min(limit, dx * factor));
+    // Léger recul en profondeur pendant le glissement : la page semble se
+    // décoller avant de céder la place à la suivante.
+    const depth = atEdge ? 1 : 1 - Math.min(0.014, Math.abs(damp) / 5200);
+    dragPanel.style.transform = 'translateX(' + damp + 'px) scale(' + depth.toFixed(4) + ')';
     dragPanel.style.opacity = String(1 - Math.min(0.22, Math.abs(damp) / 320));
   }, { passive: false });
 
@@ -324,9 +351,7 @@ CC.initMobileNav = function () {
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const commit = Math.abs(dx) >= 70 && Math.abs(dx) > Math.abs(dy) * 1.5;
     if (!commit) { clearDrag(true); return; }
-    // Ordre = onglets du haut visibles (Spotify masqué sur PWA est exclu).
-    const order = Array.prototype.slice.call(document.querySelectorAll('.tab[data-tab]'))
-      .filter((tb) => !tb.classList.contains('hidden')).map((tb) => tb.dataset.tab);
+    const order = tabOrder();
     const cur = order.findIndex((n) => { const p = document.getElementById('tab-' + n); return p && p.classList.contains('active'); });
     const next = dx < 0 ? cur + 1 : cur - 1;   // glisser vers la gauche = onglet suivant
     if (cur < 0 || next < 0 || next >= order.length) { clearDrag(true); return; }   // pas de bouclage
@@ -379,7 +404,6 @@ async function init() {
   CC.connections.bind();
   CC.agenda.bind();
   if (CC.mailbox) CC.mailbox.bind();
-  if (CC.spotify) CC.spotify.bind();
   if (CC.trajets) CC.trajets.bind();
   if (CC.notes) CC.notes.bind();
   if (CC.privacy) CC.privacy.bind();
@@ -477,7 +501,7 @@ CC.showOfflineBanner = function (mirrorUpdatedAt) {
   const when = mirrorUpdatedAt
     ? new Date(mirrorUpdatedAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : 'dernière sauvegarde';
-  bar.innerHTML = `<span class="dd-ic">⚠️</span><span>Disque externe non connecté — affichage en <b>lecture seule</b> de la copie locale (${when}).</span><button id="ddReconnect" class="btn">Reconnecter</button>`;
+  bar.innerHTML = `<span class="dd-ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span><span>Disque externe non connecté — affichage en <b>lecture seule</b> de la copie locale (${when}).</span><button id="ddReconnect" class="btn">Reconnecter</button>`;
   bar.classList.add('show');
   document.body.classList.add('readonly');
   CC.updateDirtyUI();
@@ -545,7 +569,7 @@ CC.tryReconnectDD = async function (manual) {
 // Empeche toute action de modification quand on est en lecture seule (hors DD).
 CC.installReadOnlyGuard = function () {
   const allowed = (t) =>
-    t.closest('.tab, .subtab, #ddBanner, #tab-mails, #mailModal, #tab-redaction, #tab-spotify, #tab-agenda, #tab-settings, .leaflet-container, .ac-list') ||
+    t.closest('.tab, .subtab, #ddBanner, #tab-mails, #mailModal, #tab-redaction, #tab-agenda, #tab-settings, .leaflet-container, .ac-list') ||
     t.closest('#yearSelect, #btnExportCsv, #btnExportPdf, #bilanExport, #bilanYear, #tj_calc, #mailRefresh');
   document.addEventListener('click', (e) => {
     if (!CC.state.readOnly) return;

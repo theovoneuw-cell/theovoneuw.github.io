@@ -5,6 +5,13 @@ const AG_MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet
 const AG_JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const AG_CACHE_PREFIX = 'gcalCache:';   // localStorage : dernière synchro par mois
 
+// Icônes du détail d'événement : des SVG au trait, cohérents avec le reste de
+// l'app (les emojis couleur juraient avec la charte et changeaient selon l'OS).
+const IC_CAL = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg>';
+// Grand format, pour l'état vide de l'onglet.
+const IC_CAL_LG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="M7.5 13.5h3M13.5 13.5h3M7.5 17h3"/></svg>';
+const IC_PIN = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10.5c0 5.2-8 11.5-8 11.5S4 15.7 4 10.5a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10.3" r="2.8"/></svg>';
+
 // Palette officielle des "couleurs d'événement" Google Agenda (colorId 1..11).
 // On la rend de façon sobre (liseré + fond léger) pour rester dans l'esprit de l'app.
 const AG_ACCENT = '#4f46e5';            // couleur par défaut (indigo de l'app)
@@ -133,7 +140,12 @@ CC.agenda = {
 
     // Pas de cache -> messages habituels
     if (/connect/i.test(res.error)) {
-      body.innerHTML = `<div class="agenda-empty">Google Agenda n'est pas connecté.<br><button class="btn btn-primary" id="agendaConnect" style="margin-top:12px">Connecter Google Agenda</button></div>`;
+      body.innerHTML = `<div class="agenda-empty">
+        <span class="ag-empty-ic">${IC_CAL_LG}</span>
+        <div class="ag-empty-t">Google Agenda n'est pas connecté</div>
+        <p class="ag-empty-s">Connecte ton compte pour voir tes rendez-vous du mois ici, et les créer sans quitter l'app.</p>
+        <button class="btn btn-primary" id="agendaConnect">Connecter Google Agenda</button>
+      </div>`;
       const b = document.getElementById('agendaConnect');
       if (b) b.addEventListener('click', () => CC.switchTab('settings'));
     } else {
@@ -210,7 +222,10 @@ CC.agenda = {
         return `<div class="cal-ev" data-ev-id="${esc(e.id)}" ${style} title="Voir le détail">${h}${esc(e.titre)}</div>`;
       }).join('');
       const more = evs.length > 3 ? `<div class="cal-more">+${evs.length - 3} autre(s)</div>` : '';
-      html += `<div class="cal-cell${inMonth ? '' : ' out'}${isToday ? ' today' : ''}${evs.length ? ' has' : ''}" data-day="${key}">
+      // La colonne 6 et 7 de la grille (index 5 et 6) sont samedi et dimanche :
+      // elles reçoivent une teinte discrète pour repérer les week-ends d'un coup d'œil.
+      const we = (i % 7) >= 5 ? ' we' : '';
+      html += `<div class="cal-cell${inMonth ? '' : ' out'}${isToday ? ' today' : ''}${evs.length ? ' has' : ''}${we}" data-day="${key}">
         <div class="cal-num">${d.getDate()}</div>${shown}${more}</div>`;
     }
     html += '</div></div>';
@@ -236,10 +251,10 @@ CC.agenda = {
     else { const h1 = heure(e.debut), h2 = e.fin ? heure(e.fin) : ''; horaire = h2 ? `${h1} – ${h2}` : h1; }
 
     const rows = [];
-    rows.push(metaRow('🗓️', `${dateStr}${horaire ? ' · ' + horaire : ''}`));
+    rows.push(metaRow(IC_CAL, `${dateStr}${horaire ? ' · ' + horaire : ''}`));
     if (e.lieu) {
       const url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.lieu);
-      rows.push(`<div class="ev-meta"><span class="ev-ic">📍</span><a href="#" data-ev-url="${esc(url)}" class="lnk">${esc(e.lieu)}</a></div>`);
+      rows.push(`<div class="ev-meta"><span class="ev-ic">${IC_PIN}</span><a href="#" data-ev-url="${esc(url)}" class="lnk">${esc(e.lieu)}</a></div>`);
     }
     let descHtml = '';
     if (e.description) descHtml = `<div class="ev-desc">${esc(e.description)}</div>`;
