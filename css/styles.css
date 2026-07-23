@@ -1592,6 +1592,9 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   /* Modales : quasi plein écran, alignées en haut */
   .modal-backdrop { padding: 10px; align-items: flex-start; }
   .modal, .modal-lg, .ev-modal { max-width: 100%; max-height: 90dvh; padding: 18px 16px; margin-top: env(safe-area-inset-top); }
+  /* Composeur de mail : centré verticalement (fenêtre courte, pas plein écran) */
+  #mailModal { align-items: center; padding: 12px; }
+  #mailModal .modal { margin-top: 0; }
 
   /* Mails : rail replié en bandeau de dossiers, liste au-dessus du lecteur.
      Sur mobile on redonne le défilement à la page (pas de panneaux figés). */
@@ -1599,11 +1602,11 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   #tab-mails.active { display: block; height: auto; flex: none; }
   .gm { grid-template-columns: 1fr; height: auto; min-height: 0; gap: 12px; }
   .mail-list, .mail-reader { height: auto; }
-  .gm-pager { width: 100%; justify-content: flex-end; }
-  .gm-side { flex-direction: row; align-items: center; gap: 10px; }
-  .gm-compose { flex-shrink: 0; padding: 11px 16px; }
-  .gm-folders { flex-direction: row; flex: 1; min-width: 0; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
-  .mfolder { width: auto; flex: 0 0 auto; padding: 0 14px; }
+  .gm-pager { justify-content: flex-end; }
+  .gm-side { flex-direction: column; align-items: stretch; gap: 10px; }
+  .gm-compose { width: 100%; justify-content: center; align-self: stretch; padding: 11px 16px; }
+  .gm-folders { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .mfolder { width: 100%; height: 40px; padding: 0 14px; }
   .mail-grid { grid-template-columns: 1fr; height: auto; }
   .mail-list { max-height: 44vh; }
   .mail-reader { padding: 16px 14px; }
@@ -1650,13 +1653,22 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   /* La barre de recherche des mails existe maintenant aussi sur téléphone :
      elle prend toute la largeur et la pagination passe dessous. */
   .gm-topbar { flex-wrap: wrap; }
+  .gm-pager { margin-left: auto; }
   .mail-search { flex: 1 1 100%; order: -1; }
   .mail-search-input { padding: 11px 34px 11px 40px; }
   /* Emojis : grille plus large et cases plus grandes (cible tactile ≥ 40 px). */
-  .mc-emoji-pop { grid-template-columns: repeat(6, 1fr); max-height: 46dvh; }
-  .mc-emoji { font-size: 24px; }
-  .mc-emoji-btn { width: 38px; height: 38px; font-size: 20px; }
-  .mc-body-wrap:has(.mc-emoji-btn) textarea { padding-right: 52px; }
+  /* Sélecteur d'emojis : plaque pleine largeur juste au-dessus du bouton,
+     hauteur limitée pour ne pas recouvrir les champs À / Objet. Fond plein
+     (pas de verre) pour rester lisible sur le formulaire. */
+  .mc-emoji-pop { left: 8px; right: 8px; width: auto; max-width: none; bottom: 46px;
+    grid-template-columns: repeat(7, 1fr); max-height: 200px;
+    background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none;
+    border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
+  .mc-emoji { font-size: 22px; }
+  /* Bouton emoji : simple pastille discrète dans le coin, pas une carte flottante */
+  .mc-emoji-btn { width: 34px; height: 34px; font-size: 19px; background: transparent; border: none; box-shadow: none; color: var(--muted); }
+  .mc-emoji-btn:hover { transform: none; }
+  .mc-body-wrap:has(.mc-emoji-btn) textarea { padding-right: 44px; }
 
   /* ---- Factures : tableau -> cartes compactes (lisibles au doigt) ----
      Client = titre de la carte, montant mis en avant, méta resserrées. */
