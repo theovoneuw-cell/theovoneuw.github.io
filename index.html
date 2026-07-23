@@ -464,14 +464,26 @@
     <!-- ===================== RÉDACTION (IA) ===================== -->
     <section id="tab-redaction" class="panel">
       <div class="ai-head">
-        <h2>Assistant IA</h2>
-        <p>Pose tes questions à Gemini — plusieurs discussions, l'historique reste sur cet appareil.</p>
+        <div class="ai-head-titles">
+          <h2>Assistant IA</h2>
+          <p>Pose tes questions à Gemini — plusieurs discussions, l'historique reste sur cet appareil.</p>
+        </div>
+        <!-- Téléphone uniquement : ouvre le volet des discussions (masqué en desktop). -->
+        <button type="button" id="aiDrawerToggle" class="ai-drawer-toggle" aria-label="Mes discussions" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <span>Discussions</span>
+        </button>
       </div>
       <div class="ai-layout">
-        <aside class="ai-sidebar">
+        <aside class="ai-sidebar" id="aiSidebar">
+          <div class="ai-sidebar-head">
+            <span class="ai-sidebar-title">Mes discussions</span>
+            <button type="button" id="aiDrawerClose" class="ai-drawer-close" aria-label="Fermer le volet">✕</button>
+          </div>
           <button type="button" id="aiNew" class="btn btn-primary ai-new">+ Nouvelle discussion</button>
           <div id="aiList" class="ai-list"></div>
         </aside>
+        <div id="aiDrawerBackdrop" class="ai-drawer-backdrop hidden"></div>
         <div class="ai-main">
           <div id="aiMessages" class="ai-messages"></div>
           <div id="aiAttachBar" class="ai-attach-bar hidden"></div>

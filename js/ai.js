@@ -408,7 +408,33 @@ CC.ai = {
     if (this._bound) return;
     const newBtn = document.getElementById('aiNew');
     if (!newBtn) return;   // onglet pas dans le DOM
-    newBtn.addEventListener('click', () => CC.ai.newChat());
+
+    // ---- Volet des discussions (téléphone) : s'ouvre et se rabat. Sur desktop,
+    // la barre latérale reste affichée et ces contrôles sont masqués en CSS. ----
+    const sidebar = document.getElementById('aiSidebar');
+    const backdrop = document.getElementById('aiDrawerBackdrop');
+    const toggle = document.getElementById('aiDrawerToggle');
+    const closeBtn = document.getElementById('aiDrawerClose');
+    const openDrawer = () => {
+      if (sidebar) sidebar.classList.add('open');
+      if (backdrop) backdrop.classList.remove('hidden');
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    };
+    const closeDrawer = () => {
+      if (sidebar) sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.add('hidden');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    };
+    this._closeDrawer = closeDrawer;
+    if (toggle) toggle.addEventListener('click', () => {
+      (sidebar && sidebar.classList.contains('open')) ? closeDrawer() : openDrawer();
+    });
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+    // Ouvrir une discussion (ou en créer une) referme le volet sur téléphone.
+    newBtn.addEventListener('click', () => { CC.ai.newChat(); closeDrawer(); });
 
     const sendBtn = document.getElementById('aiSend');
     if (sendBtn) sendBtn.addEventListener('click', () => CC.ai.send());
@@ -424,7 +450,7 @@ CC.ai = {
       const del = e.target.closest('[data-aidel]');
       if (del) { e.stopPropagation(); CC.ai.remove(del.dataset.aidel); return; }
       const conv = e.target.closest('[data-aiconv]');
-      if (conv) CC.ai.select(conv.dataset.aiconv);
+      if (conv) { CC.ai.select(conv.dataset.aiconv); if (CC.ai._closeDrawer) CC.ai._closeDrawer(); }
     });
 
     // Pièces jointes : bouton trombone → sélecteur de fichiers ; puce ✕ = retirer.
