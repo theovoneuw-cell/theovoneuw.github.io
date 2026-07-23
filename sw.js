@@ -11,7 +11,7 @@
 // Version du cache : à incrémenter à chaque refonte visuelle. L'ancien cache est
 // purgé à l'activation, ce qui évite de servir un mélange d'anciens et de
 // nouveaux fichiers après une mise à jour importante.
-const CACHE = 'macompta-v21';
+const CACHE = 'macompta-mry0lonl';
 
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
@@ -54,13 +54,24 @@ self.addEventListener('fetch', (e) => {
 
   // Réseau d'abord (toujours la dernière version quand on est en ligne), avec
   // repli sur le cache hors-ligne. Évite de servir du vieux code après une MAJ.
+  //
+  // La navigation (index.html) est demandée en `cache: 'reload'` : on court-circuite
+  // le cache HTTP du navigateur (que GitHub Pages autorise 10 min) pour TOUJOURS
+  // recharger le HTML frais — c'est lui qui pointe vers les CSS/JS versionnés (?b=…).
+  // Sans ça, un vieux index.html continuerait de référencer les anciens fichiers.
+  const isNav = req.mode === 'navigate';
+  const netReq = isNav ? new Request(req.url, { cache: 'reload' }) : req;
   e.respondWith(
-    fetch(req).then((res) => {
+    fetch(netReq).then((res) => {
       if (res && res.ok && res.type === 'basic') {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(function () {});
       }
       return res;
-    }).catch(() => caches.match(req).then((c) => c || caches.match('index.html')))
+    }).catch(() =>
+      // Hors-ligne : `ignoreSearch` fait correspondre « styles.css?b=… » au fichier
+      // « styles.css » mis en cache par la coquille (précache sans query).
+      caches.match(req, { ignoreSearch: true }).then((c) => c || caches.match('index.html'))
+    )
   );
 });
