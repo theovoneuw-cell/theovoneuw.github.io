@@ -105,20 +105,23 @@ CC.mailbox = {
 
     // Réponse / transfert + liens des mails -> navigateur (jamais dans l'app)
     const reader = document.getElementById('mailReader');
-    if (reader) reader.addEventListener('click', (e) => {
-      const att = e.target.closest('[data-matt]');
-      if (att) { CC.mailbox._downloadAttachment(att.dataset.matt, att.dataset.mname || '', att.dataset.mmime || ''); return; }
-      const act = e.target.closest('button[data-mact]');
-      if (act) {
-        if (act.dataset.mact === 'reply') CC.mailbox._reply();
-        else if (act.dataset.mact === 'forward') CC.mailbox._forward();
-        else if (act.dataset.mact === 'trash' && CC.mailbox._current) CC.mailbox._del(CC.mailbox._current.id, '');
-        else if (act.dataset.mact === 'star' && CC.mailbox._current) CC.mailbox._applyStar(CC.mailbox._current.id, !act.classList.contains('on'));
-        return;
-      }
-      const a = e.target.closest('a[href]');
-      if (a) { e.preventDefault(); const h = a.getAttribute('href'); if (h && /^https?:/i.test(h)) window.api.openUrl(h); }
-    });
+    if (reader) reader.addEventListener('click', (e) => CC.mailbox._readerClick(e));
+
+    // Modale de lecture (téléphone) : sur mobile, cliquer un mail l'ouvre en plein
+    // écran plutôt que dans un lecteur latéral qu'on ne voit pas. Créée une fois ;
+    // partage la même délégation d'événements que le lecteur (favoris, corbeille,
+    // répondre, transférer, pièces jointes, liens).
+    if (!document.getElementById('mailReadModal')) {
+      const rm = document.createElement('div');
+      rm.id = 'mailReadModal';
+      rm.className = 'modal-backdrop hidden';
+      rm.innerHTML = '<div class="modal modal-lg mail-read-modal"><button class="mail-read-x" data-mrclose title="Fermer" aria-label="Fermer">✕</button><div id="mailReadBody" class="mail-reader mail-reader-modal"></div></div>';
+      document.body.appendChild(rm);
+      rm.addEventListener('click', (e) => {
+        if (e.target.id === 'mailReadModal' || e.target.closest('[data-mrclose]')) { CC.mailbox._closeRead(); return; }
+        CC.mailbox._readerClick(e);
+      });
+    }
 
     // Bouton "Nouveau message"
     const compose = document.getElementById('mailCompose');
@@ -140,7 +143,7 @@ CC.mailbox = {
         if (e.target.closest('#mcAI')) { CC.mailbox._aiHelp(); return; }
       });
     }
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') CC.mailbox._closeCompose(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { CC.mailbox._closeCompose(); CC.mailbox._closeRead(); } });
 
     this._bound = true;
   },
@@ -254,7 +257,10 @@ CC.mailbox = {
   },
 
   async _open(id, el) {
-    const reader = document.getElementById('mailReader');
+    // Sur téléphone, le mail s'ouvre dans une modale plein écran (le lecteur
+    // latéral n'est pas visible sans faire défiler). Sur PC, lecteur classique.
+    const mobile = !!(window.matchMedia && window.matchMedia('(max-width: 720px)').matches);
+    const reader = mobile ? this._openRead() : document.getElementById('mailReader');
     if (!reader) return;
     document.querySelectorAll('.mitem').forEach((x) => x.classList.remove('sel'));
     if (el) { el.classList.add('sel'); el.classList.remove('unread'); }
@@ -409,10 +415,12 @@ CC.mailbox = {
     this._list = (this._list || []).filter((m) => m.id !== id);
     const el = document.querySelector('.mitem[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
     if (el) el.remove();
-    // Vide le lecteur si le message ouvert était celui supprimé
+    // Vide le lecteur si le message ouvert était celui supprimé (et ferme la
+    // modale de lecture sur mobile).
     if (this._current && this._current.id === id) {
       const reader = document.getElementById('mailReader');
       if (reader) reader.innerHTML = '<div class="mail-empty">Sélectionne un message pour le lire.</div>';
+      this._closeRead();
       this._current = null;
     }
     if (!this._list.length) {
@@ -435,12 +443,12 @@ CC.mailbox = {
     }
     if (this._current && this._current.id === id) {
       this._current.favori = on;
-      const rb = document.querySelector('#mailReader [data-mact="star"]');
-      if (rb) {
+      // Étoile du lecteur latéral (PC) ET de la modale de lecture (téléphone).
+      document.querySelectorAll('#mailReader [data-mact="star"], #mailReadBody [data-mact="star"]').forEach((rb) => {
         rb.classList.toggle('on', on);
         rb.innerHTML = on ? '★' : '☆';
         rb.title = on ? 'Retirer des favoris' : 'Ajouter aux favoris';
-      }
+      });
     }
   },
 
@@ -496,6 +504,7 @@ CC.mailbox = {
     `);
     // Contexte de fil (réponse) / brouillon édité, conservé hors DOM
     this._ctx = { threadId: pre.threadId || '', inReplyTo: pre.inReplyTo || '', draftId: pre.draftId || '' };
+    this._acRenders = [];   // les champs du composeur précédent n'existent plus
     this._attachments = [];
     this._renderAttachments();
 
@@ -552,10 +561,16 @@ CC.mailbox = {
 
   // Carnet d'adresses (déduit des mails), récupéré une fois par session.
   async _loadContacts() {
-    if (this._contacts) return;
+    if (this._contacts) { this._refreshAC(); return; }
     try { const r = await window.api.gmail.contacts(); this._contacts = (r && r.contacts) || []; }
     catch (_) { this._contacts = []; }
+    // Le carnet arrive après l'ouverture du composeur (appel réseau) : on relance
+    // l'affichage des suggestions au cas où l'utilisateur a déjà commencé à taper.
+    this._refreshAC();
   },
+
+  // Relance chaque autocomplétion active (après chargement des contacts).
+  _refreshAC() { (this._acRenders || []).forEach((fn) => { try { fn(); } catch (_) {} }); },
 
   // Autocomplétion maison (style de l'app) sur un champ destinataire/Cc/Cci.
   // Gère les listes séparées par des virgules : ne complète que le dernier élément.
@@ -563,6 +578,7 @@ CC.mailbox = {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
     if (!input || !list) return;
+    if (!this._acRenders) this._acRenders = [];
 
     const hide = () => { list.classList.add('hidden'); list.innerHTML = ''; list._items = null; list._sel = -1; };
     const lastToken = (val) => {
@@ -570,10 +586,16 @@ CC.mailbox = {
       return { prefix: i >= 0 ? val.slice(0, i + 1) + ' ' : '', token: (i >= 0 ? val.slice(i + 1) : val).trim() };
     };
     const render = () => {
+      // Ne suggère que si le champ a le focus (évite un rafraîchissement fantôme
+      // quand le carnet d'adresses finit de charger sur un autre champ).
+      if (document.activeElement !== input) return;
       const q = lastToken(input.value).token.toLowerCase();
       if (q.length < 1) { hide(); return; }
+      // Correspondance sur le début d'un mot du nom (nom de famille OU prénom),
+      // ou n'importe où dans l'adresse e-mail. Les contacts sont déjà classés par
+      // fréquence d'échange ("à qui j'ai déjà écrit" en premier).
       const items = (CC.mailbox._contacts || [])
-        .filter((c) => (c.email && c.email.includes(q)) || (c.name && c.name.toLowerCase().includes(q)))
+        .filter((c) => (c.email && c.email.includes(q)) || (c.name && nameMatches(c.name, q)))
         .slice(0, 8);
       if (!items.length) { hide(); return; }
       list._items = items; list._sel = -1;
@@ -591,6 +613,9 @@ CC.mailbox = {
 
     input.addEventListener('input', render);
     input.addEventListener('focus', render);
+    // Mémorise ce champ pour pouvoir rafraîchir ses suggestions quand le carnet
+    // d'adresses termine de charger (appel réseau asynchrone).
+    this._acRenders.push(render);
     input.addEventListener('keydown', (e) => {
       if (list.classList.contains('hidden') || !list._items) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); list._sel = Math.min(list._items.length - 1, list._sel + 1); }
@@ -600,12 +625,14 @@ CC.mailbox = {
       else return;
       Array.from(list.children).forEach((el, i) => el.classList.toggle('sel', i === list._sel));
     });
-    list.addEventListener('mousedown', (e) => {
+    // `pointerdown` couvre souris ET tactile (l'ancien `mousedown` ne se
+    // déclenchait pas de façon fiable au doigt sur iPhone → suggestions inutiles).
+    list.addEventListener('pointerdown', (e) => {
       const it = e.target.closest('.ac-item'); if (!it) return;
       e.preventDefault();   // garde le focus, évite le blur prématuré
       choose(list._items[+it.dataset.i]);
     });
-    input.addEventListener('blur', () => setTimeout(hide, 150));
+    input.addEventListener('blur', () => setTimeout(hide, 200));
   },
 
   async _addFiles(fileList) {
@@ -632,6 +659,7 @@ CC.mailbox = {
 
   _reply() {
     const m = this._current; if (!m) return;
+    this._closeRead();   // sur mobile, on remplace la lecture par le composeur
     const orig = (m.text || stripHtml(m.html) || '').trim();
     const quote = orig ? '\n\n' + ('Le ' + longDate(m.date) + ', ' + persona(m.de) + ' a écrit :\n' + orig.split('\n').map((l) => '> ' + l).join('\n')) : '';
     this._openCompose({
@@ -646,6 +674,7 @@ CC.mailbox = {
 
   _forward() {
     const m = this._current; if (!m) return;
+    this._closeRead();
     const orig = (m.text || stripHtml(m.html) || '').trim();
     const head = `\n\n----- Message transféré -----\nDe : ${m.de}\nDate : ${longDate(m.date)}\nObjet : ${m.sujet}\n${m.a ? 'À : ' + m.a + '\n' : ''}\n${orig}`;
     this._openCompose({
@@ -718,6 +747,34 @@ CC.mailbox = {
     finally { spin.classList.add('hidden'); btn.disabled = false; }
   },
 
+  // Délégation partagée par le lecteur latéral (PC) et la modale (téléphone).
+  _readerClick(e) {
+    const att = e.target.closest('[data-matt]');
+    if (att) { this._downloadAttachment(att.dataset.matt, att.dataset.mname || '', att.dataset.mmime || ''); return; }
+    const act = e.target.closest('button[data-mact]');
+    if (act) {
+      if (act.dataset.mact === 'reply') this._reply();
+      else if (act.dataset.mact === 'forward') this._forward();
+      else if (act.dataset.mact === 'trash' && this._current) this._del(this._current.id, '');
+      else if (act.dataset.mact === 'star' && this._current) this._applyStar(this._current.id, !act.classList.contains('on'));
+      return;
+    }
+    const a = e.target.closest('a[href]');
+    if (a) { e.preventDefault(); const h = a.getAttribute('href'); if (h && /^https?:/i.test(h)) window.api.openUrl(h); }
+  },
+
+  // Ouvre (affiche) la modale de lecture et renvoie son conteneur de contenu.
+  _openRead() {
+    const back = document.getElementById('mailReadModal');
+    const body = document.getElementById('mailReadBody');
+    if (back) { back.classList.remove('hidden'); back.scrollTop = 0; }
+    return body;
+  },
+  _closeRead() {
+    const back = document.getElementById('mailReadModal');
+    if (back) back.classList.add('hidden');
+  },
+
   _show(html) {
     const back = document.getElementById('mailModal');
     const inner = document.getElementById('mailModalBody');
@@ -739,6 +796,17 @@ const ICO = {
   reply: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>',
   forward: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 17 5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>',
 };
+
+// Vrai si l'un des mots du nom commence par la saisie (prénom OU nom de famille),
+// insensible à la casse et aux accents. « dup » trouve « Jean Dupont ».
+function nameMatches(name, q) {
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const nq = norm(q);
+  if (!nq) return false;
+  const nn = norm(name);
+  if (nn.startsWith(nq)) return true;
+  return nn.split(/[\s,.'-]+/).some((w) => w.startsWith(nq));
+}
 
 // Pastille d'initiale : 1 à 2 lettres tirées du nom (ou de l'adresse).
 function initials(nom) {

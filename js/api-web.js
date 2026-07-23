@@ -74,20 +74,36 @@ window.CC = window.CC || {};
   }
 
   // ====================== GMAIL ======================
-  async function listFolder(dossier, maxResults) {
+  async function listFolder(dossier, maxResults, recherche, pageToken) {
     const max = maxResults || 25;
+    const search = (recherche || '').trim();
     let ids = [];
+    let nextPageToken = '';
+    let total = 0;
     if (dossier === 'brouillons') {
-      const data = await gget(GMAIL + '/drafts?maxResults=' + max);
+      let url = GMAIL + '/drafts?maxResults=' + max;
+      if (search) url += '&q=' + encodeURIComponent(search);
+      if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+      const data = await gget(url);
       if (data.__error) return { error: data.__error };
       ids = (data.drafts || []).map((d) => ({ id: d.message.id, draftId: d.id }));
+      nextPageToken = data.nextPageToken || '';
+      total = data.resultSizeEstimate || 0;
     } else {
       // 'favoris' = messages marqués d'une étoile (label STARRED, toutes boîtes).
       const labelIds = dossier === 'envoyes' ? 'SENT' : (dossier === 'favoris' ? 'STARRED' : 'INBOX');
-      const q = dossier === 'principal' ? '&q=' + encodeURIComponent('category:primary') : '';
-      const data = await gget(GMAIL + '/messages?labelIds=' + labelIds + '&maxResults=' + max + q);
+      // La boîte principale se limite à la catégorie « primary » ; la recherche
+      // (facultative) s'ajoute au même paramètre q, séparée par une espace.
+      let q = dossier === 'principal' ? 'category:primary' : '';
+      if (search) q = q ? (q + ' ' + search) : search;
+      let url = GMAIL + '/messages?labelIds=' + labelIds + '&maxResults=' + max;
+      if (q) url += '&q=' + encodeURIComponent(q);
+      if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+      const data = await gget(url);
       if (data.__error) return { error: data.__error };
       ids = (data.messages || []).map((m) => ({ id: m.id }));
+      nextPageToken = data.nextPageToken || '';
+      total = data.resultSizeEstimate || 0;
     }
     const metas = await Promise.all(ids.map(async (it) => {
       const m = await gget(GMAIL + '/messages/' + it.id + '?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date');
@@ -104,7 +120,7 @@ window.CC = window.CC || {};
         favori: labels.indexOf('STARRED') !== -1
       };
     }));
-    return { messages: metas.filter(Boolean).sort((a, b) => b.dateMs - a.dateMs) };
+    return { messages: metas.filter(Boolean).sort((a, b) => b.dateMs - a.dateMs), nextPageToken: nextPageToken, total: total };
   }
   function walkParts(payload, acc) {
     if (!payload) return;
@@ -456,7 +472,7 @@ window.CC = window.CC || {};
 
     // ---- Gmail ----
     gmail: {
-      list(opts) { return listFolder(opts.dossier, opts.maxResults); },
+      list(opts) { return listFolder(opts.dossier, opts.maxResults, opts.recherche, opts.pageToken); },
       async get(id) {
         const m = await gget(GMAIL + '/messages/' + id + '?format=full');
         if (m.__error) return { error: m.__error };

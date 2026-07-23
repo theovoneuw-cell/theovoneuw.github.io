@@ -1207,6 +1207,28 @@ body:has(#tab-mails.active) main { overflow: hidden; display: flex; flex-directi
 .mc-title { flex: 1; font-family: var(--serif); font-size: 14px; font-weight: 600; color: #fff; letter-spacing: -.1px; }
 .mc-x { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: transparent; border: none; border-radius: 50%; color: rgba(255,255,255,.85); font-size: 14px; line-height: 1; cursor: pointer; transition: background .12s ease, color .12s ease; }
 .mc-x:hover { background: rgba(255,255,255,.18); color: #fff; }
+
+/* ----- Modale de lecture d'un mail (téléphone) -----
+   Feuille qui remonte du bas, coins hauts arrondis (esprit iOS). Le contenu est
+   celui du lecteur (favoris, corbeille, répondre, transférer) + une croix pour
+   fermer. Ne s'affiche que sur mobile (ouverte depuis mailbox.js). */
+#mailReadModal .modal { padding: 0; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+.mail-read-x {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: none; border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1;
+  background: var(--surface-2); color: var(--muted); box-shadow: var(--shadow-soft);
+  transition: background .12s ease, color .12s ease;
+}
+.mail-read-x:hover { background: var(--border-strong); color: var(--ink); }
+.mail-reader-modal {
+  border: none; box-shadow: none; border-radius: 0;
+  height: auto; flex: 1; overflow-y: auto;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+}
+/* Le titre du mail ne passe pas sous la croix de fermeture. */
+.mail-reader-modal .mail-msg-head { padding-right: 42px; }
+
 .mc-form { display: flex; flex-direction: column; padding: 0 18px; overflow-y: auto; }
 /* Ligne de champ : libellé fixe à gauche, saisie sans bordure, filet en bas */
 .mc-form .ev-f { flex-direction: row; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
@@ -1517,10 +1539,11 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   main { padding: 14px 12px calc(70px + env(safe-area-inset-bottom)); }
 
   /* En-tête : compact, empilé, onglets défilants au doigt */
-  .topbar { height: auto; flex-wrap: wrap; gap: 8px 12px; padding: calc(9px + env(safe-area-inset-top)) 12px 9px; }
+  .topbar { height: auto; flex-wrap: wrap; gap: 10px 12px; padding: calc(10px + env(safe-area-inset-top)) 14px 11px; }
+  .brand { flex: 1 1 auto; }
   .brand .sub { display: none; }
-  .brand h1 { font-size: 17px; }
-  .brand .logo { width: 33px; height: 33px; }
+  .brand h1 { font-size: 18px; }
+  .brand .logo { width: 34px; height: 34px; }
   /* Onglets du haut masqués sur mobile : remplacés par la barre du bas. */
   .tabs { display: none; }
 
@@ -1561,12 +1584,25 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   }
   .mobile-sheet { display: block; position: fixed; inset: 0; z-index: 60; }
   .mobile-sheet.hidden { display: none; }
-  /* En-tête mobile : les contrôles passent sur leur propre ligne pleine largeur et
-     s'enroulent à droite → le bouton « Enregistrer » n'est jamais rogné. */
-  .topbar-right { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-  .year-select { font-size: 11px; gap: 4px; flex-shrink: 1; min-width: 0; }
-  .year-select select { padding: 6px 8px; min-width: 0; max-width: 104px; }
-  .topbar-right .btn, #btnSave { padding: 7px 11px; font-size: 12px; }
+  /* En-tête mobile : les contrôles occupent leur propre ligne pleine largeur et
+     sont répartis régulièrement (même hauteur, mêmes coins) → une barre équilibrée
+     plutôt qu'un amas de pastilles dépareillées collées à droite. */
+  .topbar-right { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; justify-content: space-between; gap: 8px; }
+  /* Année : vraie pastille (fond + bordure), à la même hauteur que les boutons. */
+  .year-select {
+    flex: 0 1 auto; min-width: 0; gap: 0; height: 42px;
+    border: 1px solid var(--border-strong); border-radius: var(--r-md);
+    background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden;
+  }
+  .year-select select {
+    height: 100%; min-width: 0; max-width: 92px; padding: 0 12px;
+    border: none; background: transparent; box-shadow: none;
+    font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.2px;
+  }
+  /* Icônes thème / œil : carrés arrondis identiques. */
+  .topbar-right .btn-icon { flex: 0 0 auto; width: 42px; height: 42px; padding: 0; border-radius: var(--r-md); }
+  /* Enregistrer : pastille pleine, même hauteur. */
+  #btnSave { flex: 0 1 auto; height: 42px; padding: 0 18px; font-size: 14px; border-radius: var(--r-md); white-space: nowrap; }
 
   /* KPIs et cartes */
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -1596,6 +1632,23 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   #mailModal { align-items: center; padding: 12px; }
   #mailModal .modal { margin-top: 0; }
 
+  /* Notifications (« Fichier chargé : Google Drive », « Enregistré »…) :
+     remontées AU-DESSUS de la barre de navigation du bas (elles se posaient
+     dessus), pastille bien lisible qui ne touche jamais les bords. */
+  .toast {
+    bottom: calc(80px + env(safe-area-inset-bottom)); max-width: calc(100% - 28px);
+    text-align: center; padding: 13px 22px; font-size: 13.5px;
+  }
+
+  /* Lecture d'un mail : feuille qui remonte du bas, presque plein écran. */
+  #mailReadModal.modal-backdrop { align-items: flex-end; padding: 0; }
+  #mailReadModal .modal {
+    max-width: 100%; width: 100%; max-height: 94dvh; height: 94dvh;
+    margin: 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
+    animation: sheetUp .3s cubic-bezier(.32,.72,0,1);
+  }
+  @media (prefers-reduced-motion: reduce) { #mailReadModal .modal { animation: none; } }
+
   /* Mails : rail replié en bandeau de dossiers, liste au-dessus du lecteur.
      Sur mobile on redonne le défilement à la page (pas de panneaux figés). */
   body:has(#tab-mails.active) main { overflow-y: auto; display: block; }
@@ -1623,6 +1676,27 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
   /* Trajets : carte plus basse, KPIs sur 2 colonnes */
   #tj_map { height: 260px; }
   .tj-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* ---- Assistant IA : historique SUR LE CÔTÉ (rail vertical étroit), pas en
+     barre horizontale au-dessus de la discussion. La fenêtre de discussion garde
+     toute la hauteur disponible à droite. Annule les règles « ≤ 900px ». ---- */
+  .ai-head { margin-bottom: 8px; }
+  .ai-head p { display: none; }                 /* gagne de la hauteur sur petit écran */
+  /* Hauteur = écran − en-tête (2 lignes) − titre − barre du bas − marges. La
+     saisie reste ainsi toujours visible au-dessus de la barre de navigation. */
+  .ai-layout { grid-template-columns: 116px 1fr; gap: 10px; height: calc(100dvh - 244px - env(safe-area-inset-bottom) - env(safe-area-inset-top)); min-height: 300px; }
+  .ai-sidebar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .ai-list { flex-direction: column; overflow-x: hidden; overflow-y: auto; gap: 5px; padding-bottom: 0; }
+  .ai-conv { flex: 0 0 auto; max-width: none; padding: 9px 8px; }
+  .ai-conv-title { font-size: 12px; }
+  .ai-conv-del { opacity: 1; }
+  /* Bouton « + » compact dans le rail (le libellé long ne tient pas à 116px). */
+  .ai-new { width: 100%; font-size: 0; padding: 10px 6px; white-space: nowrap; line-height: 1; }
+  .ai-new::after { content: '＋ Nouveau'; font-size: 13px; font-weight: 600; }
+  /* Fenêtre de discussion : bulles un peu plus larges, saisie confortable. */
+  .ai-messages { padding: 14px 14px; gap: 10px; }
+  .ai-bubble { max-width: 92%; }
+  .ai-input-row { padding: 10px; gap: 8px; }
 }
 
 @media (max-width: 430px) {
