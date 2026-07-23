@@ -1706,13 +1706,15 @@ body.privacy .bilan-cat-fill { width: 100% !important; opacity: .3; filter: blur
     position: fixed; top: 0; left: 0; bottom: 0; z-index: 65;
     width: min(82vw, 320px);
     background: var(--surface); border-right: 1px solid var(--border-strong);
-    box-shadow: 0 0 40px rgba(27,23,51,.28);
     padding: calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
     gap: 12px;
-    transform: translateX(-100%);
+    /* Fermé : décalé de 1px de plus que sa largeur pour qu'aucun liseré ne dépasse. */
+    transform: translateX(-101%);
     transition: transform .3s cubic-bezier(.32,.72,0,1);
+    /* Pas d'ombre au repos : floue, elle débordait sur le bord gauche même volet fermé. */
+    box-shadow: none;
   }
-  .ai-sidebar.open { transform: translateX(0); }
+  .ai-sidebar.open { transform: translateX(0); box-shadow: 0 0 40px rgba(27,23,51,.28); }
   @media (prefers-reduced-motion: reduce) { .ai-sidebar { transition: none; } }
   /* En-tête du volet : titre + croix pour le rabattre. */
   .ai-sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
